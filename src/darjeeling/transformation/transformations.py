@@ -34,10 +34,18 @@ class ProgramTransformations:
               schemas: Collection[TransformationSchema],
               problem: 'Problem',
               snippets: SnippetDatabase,
-              localization: Localization
+              localization: Localization,
+              consider_all_lines: bool
               ) -> 'ProgramTransformations':
         logger.debug("generating program transformations")
-        lines = list(localization)
+
+        if not consider_all_lines:
+            # Only the lines that have been implicated
+            lines = list(localization)
+        else:
+            # All lines, regardless of implication
+            lines = list(problem.sources.filelines())
+
         index = TransformationIndex.build(schemas, problem, snippets, lines)
         logger.debug("generated program transformations")
         return ProgramTransformations(schemas, index)

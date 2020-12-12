@@ -99,8 +99,9 @@ class ProgramTransformationsConfig:
     def build(self,
               problem: 'Problem',
               snippets: SnippetDatabase,
-              localization: Localization
+              localization: Localization,
+              consider_all_lines: bool
               ) -> 'ProgramTransformations':
         """Constructs the transformation space described by this config."""
         schemas = [schema.build(problem, snippets) for schema in self.schemas]
-        return ProgramTransformations.build(schemas, problem, snippets, localization)  # noqa
+        return ProgramTransformations.build(schemas, problem, snippets, localization, consider_all_lines)  # noqa
