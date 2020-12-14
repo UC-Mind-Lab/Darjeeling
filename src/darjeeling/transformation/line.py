@@ -5,7 +5,7 @@ lines.
 """
 __all__ = ('InsertLine', 'DeleteLine', 'ReplaceLine')
 
-from typing import Any, Iterator, List, Mapping, Optional
+from typing import Any, Collection, Iterator, Mapping, Optional
 import abc
 import typing
 
@@ -15,7 +15,6 @@ from .base import Transformation, TransformationSchema
 from .config import TransformationSchemaConfig
 from ..snippet import SnippetDatabase, LineSnippetDatabase
 from ..core import Replacement, FileLine, FileLocationRange, LocationRange
-from ..exceptions import BadConfigurationException
 
 if typing.TYPE_CHECKING:
     from ..problem import Problem
@@ -30,24 +29,20 @@ class LineTransformationSchema(TransformationSchema[LineTransformation]):
     _problem: 'Problem' = attr.ib(hash=False)
     _snippets: LineSnippetDatabase = attr.ib(hash=False)
 
-    @classmethod
-    def build(cls,
-              problem: 'Problem',
-              snippets: SnippetDatabase,
-              threads: int
-              ) -> 'TransformationSchema':
-        if not isinstance(snippets, LineSnippetDatabase):
-            m = 'line transformations require a line snippet pool'
-            raise BadConfigurationException(m)
-        return cls(problem=problem, snippets=snippets)
+    def find_all_in_file(self, filename: str) -> Iterator[Transformation]:
+        m = "find_all_in_file is not required or supported by this schema"
+        raise NotImplementedError(m)
 
-    def all_at_lines(self,
-                     lines: List[FileLine]
-                     ) -> Mapping[FileLine, Iterator[Transformation]]:
-        return {l: self.all_at_line(l) for l in lines}
+    def find_all_at_lines_in_file(self,
+                                  filename: str,
+                                  lines: Collection[int]
+                                  ) -> Iterator[Transformation]:
+        for line_number in lines:
+            file_line = FileLine(filename, line_number)
+            yield from self.find_all_at_line(file_line)
 
     @abc.abstractmethod
-    def all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+    def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
         ...
 
     def viable_insertions(self, context: FileLine) -> Iterator[FileLine]:
@@ -76,7 +71,7 @@ class DeleteLine(LineTransformation):
         return self._schema
 
     class Schema(LineTransformationSchema):
-        def all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+        def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
             yield DeleteLine(self, line)
 
     class SchemaConfig(TransformationSchemaConfig):
@@ -115,7 +110,7 @@ class ReplaceLine(LineTransformation):
 
     @attr.s(frozen=True, auto_attribs=True)
     class Schema(LineTransformationSchema):
-        def all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+        def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
             for replacement in self.viable_insertions(line):
                 if replacement != line:
                     yield ReplaceLine(self, line, replacement)
@@ -156,7 +151,7 @@ class InsertLine(LineTransformation):
         return Replacement(r, ins)
 
     class Schema(LineTransformationSchema):
-        def all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+        def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
             # TODO append after the last line!
             for ins in self.viable_insertions(line):
                 yield InsertLine(self, line, ins)

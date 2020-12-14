@@ -120,7 +120,8 @@ class Session(DarjeelingEventProducer):
                                 language=program.language,
                                 program=program,
                                 coverage=coverage,
-                                analysis=analysis)
+                                analysis=analysis,
+                                localization=localization)
 
         logger.info("constructing database of donor snippets...")
         snippets: SnippetDatabase
@@ -128,13 +129,12 @@ class Session(DarjeelingEventProducer):
             snippets = StatementSnippetDatabase.from_kaskara(analysis, cfg)
         else:
             snippets = LineSnippetDatabase.for_problem(problem)
-        logger.info(f"constructed database of donor snippets: {len(snippets)} snippets")  # noqa
+        logger.info(f"constructed database of donor snippets: {len(snippets)} snippets")
 
-        transformations = cfg.transformations.build(problem, snippets, localization, cfg.consider_all_lines)  # noqa
+        transformations = cfg.transformations.build(problem, snippets, cfg.consider_all_lines)
         searcher = cfg.search.build(problem,
                                     resources=resources,
                                     transformations=transformations,
-                                    localization=localization,
                                     threads=cfg.threads,
                                     run_redundant_tests=cfg.run_redundant_tests)
 
