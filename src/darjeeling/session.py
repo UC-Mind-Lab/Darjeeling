@@ -65,6 +65,7 @@ class Session(DarjeelingEventProducer):
         logger.info(f"using optimizations: {cfg.optimizations}")
         logger.info(f"using coverage config: {cfg.coverage}")
         logger.info(f"running redundant tests? {cfg.run_redundant_tests}")
+        logger.info(f"considering all lines? {cfg.consider_all_lines}")
         logger.info(f"using random number generator seed: {cfg.seed}")
 
         if not cfg.terminate_early:
@@ -130,7 +131,7 @@ class Session(DarjeelingEventProducer):
             snippets = LineSnippetDatabase.for_problem(problem)
         logger.info(f"constructed database of donor snippets: {len(snippets)} snippets")
 
-        transformations = cfg.transformations.build(problem, snippets)
+        transformations = cfg.transformations.build(problem, snippets, cfg.consider_all_lines)
         searcher = cfg.search.build(problem,
                                     resources=resources,
                                     transformations=transformations,

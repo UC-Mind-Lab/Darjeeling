@@ -94,8 +94,8 @@ class Problem:
                     ', '.join([t.name for t in passing_tests]))
         logger.info('* failing tests: {}',
                     ', '.join([t.name for t in failing_tests]))
-        if not failing_tests:
-            raise NoFailingTests
+        if not failing_tests and not config.allow_no_failing_tests:
+           raise NoFailingTests
 
         # perform test ordering
         def ordering(x: Test, y: Test) -> int:
@@ -156,8 +156,8 @@ class Problem:
         logger.info("implicated lines [{}]:\n{}", len(lines), lines)
         logger.info("implicated files [{}]:\n* {}", len(files),
                     '\n* '.join(files))
-        if len(lines) == 0:
-            raise NoImplicatedLines
+        if len(lines) == 0 and not self.config.allow_no_failing_tests:
+           raise NoImplicatedLines
 
     @property
     def settings(self) -> 'OptimizationsConfig':

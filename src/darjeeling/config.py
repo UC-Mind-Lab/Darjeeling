@@ -122,6 +122,13 @@ class Config:
         Specifies if redundant tests should be run. Tests are deemed
         redundant if a candidate patch does not change lines that the
         test uses. Lines used are determined by test coverage.
+    consider_all_lines: bool
+        Specifies that all lines of code in the program should be considered
+        when determining how to transform the program.
+    allow_no_failing_tests: bool
+        Rather to error if no tests fail. The default is True because it
+        breaks the repair code. There are some potential uses for this
+        though.
     resource_limits: ResourceLimits
         Limits on the resources that may be consumed during the search.
     limit_time_minutes: int, optional
@@ -146,6 +153,8 @@ class Config:
     terminate_early: bool = attr.ib(default=True)
     threads: int = attr.ib(default=1)
     run_redundant_tests: bool = attr.ib(default=False)
+    consider_all_lines: bool = attr.ib(default=False)
+    allow_no_failing_tests: bool = attr.ib(default=False)
 
     @seed.validator
     def validate_seed(self, attribute, value):
@@ -173,6 +182,8 @@ class Config:
                  seed: Optional[int] = None,
                  threads: Optional[int] = None,
                  run_redundant_tests: bool = False,
+                 consider_all_lines: bool = False,
+                 allow_no_failing_tests: bool = False,
                  limit_candidates: Optional[int] = None,
                  limit_time_minutes: Optional[int] = None,
                  dir_patches: Optional[str] = None
@@ -211,6 +222,16 @@ class Config:
             if not isinstance(yml['run-redundant-tests'], bool):
                 err("'run-redundant-tests' property should be an bool")
             run_redundant_tests = yml['run-redundant-tests']
+
+        if 'consider-all-lines' in yml:
+            if not isinstance(yml['consider-all-lines'], bool):
+                err("'consider-all-lines' property should be an bool")
+            consider_all_lines = yml['consider-all-lines']
+            
+        if 'allow-no-failing-tests' in yml:
+            if not isinstance(yml['allow-no-failing-tests'], bool):
+                err("'allow-no-failing-tests' property should be an bool")
+            allow_no_failing_tests = yml['allow-no-failing-tests']
 
         # no seed override; seed provided in config
         if seed is None and 'seed' in yml:
@@ -263,6 +284,8 @@ class Config:
         return Config(seed=seed,
                       threads=threads,
                       run_redundant_tests=run_redundant_tests,
+                      consider_all_lines=consider_all_lines,
+                      allow_no_failing_tests=allow_no_failing_tests,
                       terminate_early=terminate_early,
                       resource_limits=resource_limits,
                       transformations=transformations,

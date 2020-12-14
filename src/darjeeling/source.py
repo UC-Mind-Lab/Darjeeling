@@ -89,6 +89,10 @@ class ProgramSourceFile:
         contents = self.read_chars(range_)
         return contents + '\n' if keep_newline else contents
 
+    def filelines(self) -> Iterator[FileLine]:
+        for n in range(self.num_lines):
+            yield FileLine(self.filename, n)
+
     def with_replacements(self, replacements: Sequence[Replacement]) -> str:
         """Returns the result of applying replacements to this file."""
         # exclude conflicting replacements
@@ -120,6 +124,10 @@ class ProgramSource(Mapping[str, ProgramSourceFile]):
     def __iter__(self) -> Iterator[str]:
         """Returns an iterator over the source filenames for this program."""
         yield from self.__files
+
+    def filelines(self) -> Iterator[FileLine]:
+        for filename in self:
+            yield from self[filename].filelines()
 
     def line_to_location_range(self, line: FileLine) -> FileLocationRange:
         """Returns the range of characters covered by a given line."""

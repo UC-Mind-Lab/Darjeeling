@@ -6,7 +6,8 @@ __all__ = (
     'ochiai',
     'ample',
     'tarantula',
-    'jaccard'
+    'jaccard',
+    'naive'
 )
 
 from typing import (Any, Callable, Dict, Iterable, Iterator, List, Mapping,
@@ -107,6 +108,11 @@ def tarantula(ep: int, np: int, ef: int, nf: int) -> float:
     return top / bottom
 
 
+@absolute_suspiciousness_metric
+def naive(ep: int, np: int, ef: int, nf: int) -> float:
+    return 1.0
+
+
 class Localization:
     @staticmethod
     def from_coverage(coverage: TestCoverageMap,
@@ -133,7 +139,8 @@ class Localization:
                 'tarantula': tarantula,
                 'ochiai': ochiai,
                 'jaccard': jaccard,
-                'ample': ample
+                'ample': ample,
+                'naive': naive
             }
             logger.info("supported suspiciousness metrics: {}",
                         ', '.join(supported_metrics.keys()))

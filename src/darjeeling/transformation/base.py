@@ -89,7 +89,12 @@ class TransformationSchema(Generic[T], abc.ABC):
         for filename, line_numbers in filename_to_lines.items():
             yield from self.find_all_at_lines_in_file(filename, line_numbers)
 
-    def find_all(self, problem: 'Problem') -> Iterator[Transformation]:
+    def find_all(self, problem: 'Problem', consider_all_lines: bool) -> Iterator[Transformation]:
         """Finds all transformations using this schema for a given problem."""
-        implicated_lines = list(problem.localization)
-        yield from self.find_all_at_lines(implicated_lines)
+        if not consider_all_lines:
+            # Only the lines that have been implicated
+            lines = list(problem.localization)
+        else:
+            # All lines, regardless of implication
+            lines = list(self.sources.filelines())
+        yield from self.find_all_at_lines(lines)

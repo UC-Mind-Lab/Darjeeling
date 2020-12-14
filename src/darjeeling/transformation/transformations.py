@@ -33,7 +33,8 @@ class ProgramTransformations:
     @classmethod
     def build(cls,
               schemas: Collection[TransformationSchema],
-              problem: 'Problem'
+              problem: 'Problem',
+              consider_all_lines: bool
               ) -> 'ProgramTransformations':
         # TODO for now, use a single thread to construct the program
         # transformations. In the future, we can add an option that
@@ -41,7 +42,7 @@ class ProgramTransformations:
 
         def find_transformations() -> Iterator['Transformation']:
             for schema in schemas:
-                yield from schema.find_all(problem)
+                yield from schema.find_all(problem, consider_all_lines)
 
         with Stopwatch() as timer:
             logger.info("building transformation database")
