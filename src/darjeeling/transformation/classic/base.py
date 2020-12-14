@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('StatementTransformation', 'StatementTransformationSchema')
 
-from typing import List, Iterator, FrozenSet, Mapping
+from typing import Collection, Iterator, FrozenSet
 import abc
 import typing
 
@@ -10,11 +10,14 @@ import attr
 import kaskara
 
 from ..base import Transformation, TransformationSchema
-from ...snippet import (StatementSnippet, SnippetDatabase,
-                        StatementSnippetDatabase)
-from ...core import (FileLine, FileLocationRange, FileLocation, Location,
-                     LocationRange)
-from ...exceptions import BadConfigurationException
+from ...snippet import StatementSnippet, StatementSnippetDatabase
+from ...core import (
+    FileLine,
+    FileLocationRange,
+    FileLocation,
+    Location,
+    LocationRange,
+)
 
 if typing.TYPE_CHECKING:
     from ..problem import Problem
@@ -28,17 +31,6 @@ class StatementTransformation(Transformation):
 class StatementTransformationSchema(TransformationSchema):
     _problem: 'Problem' = attr.ib(hash=False)
     _snippets: StatementSnippetDatabase = attr.ib(hash=False)
-
-    @classmethod
-    def build(cls,
-              problem: 'Problem',
-              snippets: SnippetDatabase,
-              threads: int
-              ) -> 'TransformationSchema':
-        if not isinstance(snippets, StatementSnippetDatabase):
-            m = 'statement transformations require a statement snippet pool'
-            raise BadConfigurationException(m)
-        return cls(problem=problem, snippets=snippets)
 
     @staticmethod
     def _source_with_indentation(source: str,
@@ -68,12 +60,19 @@ class StatementTransformationSchema(TransformationSchema):
         indentation = self._problem.sources.read_chars(indentation_range)
         return indentation
 
-    def all_at_lines(self,
-                     lines: List[FileLine],
-                     ) -> Mapping[FileLine, Iterator[Transformation]]:
-        return {line: self.all_at_line(line) for line in lines}
+    def find_all_in_file(self, filename: str) -> Iterator[Transformation]:
+        m = "find_all_in_file is not required or supported by this schema"
+        raise NotImplementedError(m)
 
-    def all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+    def find_all_at_lines_in_file(self,
+                                  filename: str,
+                                  lines: Collection[int]
+                                  ) -> Iterator[Transformation]:
+        for line_number in lines:
+            file_line = FileLine(filename, line_number)
+            yield from self.find_all_at_line(file_line)
+
+    def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
         """
         Returns an iterator over all of the possible transformations of this
         kind that can be performed at a given line.
@@ -86,12 +85,12 @@ class StatementTransformationSchema(TransformationSchema):
             return
         statements: Iterator[kaskara.Statement] = analysis.statements.at_line(line)  # noqa
         for statement in statements:
-            yield from self.all_at_statement(statement)
+            yield from self.find_all_at_statement(statement)
 
     @abc.abstractmethod
-    def all_at_statement(self,
-                         statement: kaskara.Statement
-                         ) -> Iterator[Transformation]:
+    def find_all_at_statement(self,
+                              statement: kaskara.Statement
+                              ) -> Iterator[Transformation]:
         """
         Returns an iterator over all of the possible transformations of this
         kind that can be performed at a given statement.
