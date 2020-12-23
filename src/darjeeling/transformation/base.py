@@ -96,5 +96,5 @@ class TransformationSchema(Generic[T], abc.ABC):
             lines = list(problem.localization)
         else:
             # All lines, regardless of implication
-            lines = list(self.sources.filelines())
+            lines = list(problem.sources.filelines())
         yield from self.find_all_at_lines(lines)
