@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from collections import namedtuple
 from typing import Optional, Sequence
+import functools
 import glob
 import json
 import os
@@ -11,6 +13,9 @@ import bugzoo
 import bugzoo.server
 import cement
 import pyroglyph
+import scipy
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import pdist, squareform
 import yaml
 
 from ..environment import Environment
@@ -122,8 +127,8 @@ class BaseController(cement.Controller):
             environment = Environment(bugzoo=client_bugzoo)
             try:
                 session = Session.from_config(environment, cfg)
-            except BadConfigurationException:
-                print("ERROR: bad configuration file")
+            except BadConfigurationException as exp:
+                print(f"ERROR: bad configuration file:\n{exp}")
                 sys.exit(1)
 
             coverage = session.coverage
@@ -292,6 +297,147 @@ class BaseController(cement.Controller):
                 sys.exit(0)
             else:
                 sys.exit(1)
+
+
+    @cement.ex(
+        help='Gives suggestions of groups of test cases to invalidate',
+        arguments=[
+            (['filename'],
+             {'help': ('a Darjeeling configuration file describing a '
+                       'non-faulty program and how it should be tested.')}),
+            (['--format'],
+             {'help': 'the format that should be used for the coverage report',
+              'default': 'text',
+              'choices': ('text', 'yaml', 'json')}),
+            (['--linkage'],
+             {'help': 'linkage method to use',
+              'default': 'single',
+              'choices': ('single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward')})
+        ]
+    )
+    def negations(self) -> None:
+        """Generates suggestions of test cases to negate for a given program."""
+        # load the configuration file
+        filename = self.app.pargs.filename
+        filename = os.path.abspath(filename)
+        cfg_dir = os.path.dirname(filename)
+        with open(filename, 'r') as f:
+            yml = yaml.safe_load(f)
+        cfg = Config.from_yml(yml, dir_=cfg_dir)
+
+        with bugzoo.server.ephemeral(timeout_connection=120) as client_bugzoo:
+            environment = Environment(bugzoo=client_bugzoo)
+            try:
+                session = Session.from_config(environment, cfg)
+            except BadConfigurationException as exp:
+                print(f"ERROR: bad configuration file:\n{exp}")
+                sys.exit(1)
+
+            coverage = session.coverage
+            # Clustering stuff
+            def test_name_pair(name1, name2):
+                if name1 < name2:
+                    return name1, name2
+                else:
+                    return name2, name1
+
+
+            def test_pairs(coverage:'TestCoverageMap'):
+                pairs = set()
+                for tc1 in coverage:
+                    for tc2 in coverage:
+                        pairs.add(test_name_pair(tc1, tc2))
+                return pairs
+
+
+            def test_observations(coverage:'TestCoverageMap'):
+                return [[t] for t in coverage]
+
+
+            def jaccard_indices(coverage:'TestCoverageMap'):
+                indices = dict()
+                for tc1Name, tc2Name in test_pairs(coverage):
+                    tc1Lines = coverage[tc1Name].lines
+                    tc2Lines = coverage[tc2Name].lines
+                    intersection = tc1Lines.intersection(tc2Lines)
+                    union = tc1Lines.union(tc2Lines)
+                    jaccardIndex = len(intersection)/len(union)
+                    indices[(tc1Name, tc2Name)] = jaccardIndex
+                return indices
+
+
+            indices = jaccard_indices(coverage)
+
+
+            obs = test_observations(coverage)
+            def pair_wise_distance(u, v, indices):
+                # Return the jaccard distance
+                return 1-indices[test_name_pair(u[0], v[0])]
+
+            p_hack = functools.partial(pair_wise_distance, indices=indices)
+            processed_pair_wise_distance = pdist(obs, p_hack)
+
+            def cluster_deconstructions(observations, calc_linkage):
+                ClusterNode = namedtuple("ClusterNode", ["cluster1", "cluster2", "distance"])
+                def flatten_cluster_node(cl_node):
+                    def help(cl):
+                        if isinstance(cl, list):
+                            yield cl[0]
+                        else:
+                            for c in help(cl[0]):
+                                yield c
+                            for c in help(cl[1]):
+                                yield c
+                    return list(sorted(help(cl_node)))
+
+                # Build the clusters
+                og_number = len(observations)
+                for record in calc_linkage:
+                    observations.append(ClusterNode(
+                        observations[int(record[0])], 
+                        observations[int(record[1])],
+                        record[2]
+                        ))
+
+                to_check = [observations[-1]]
+
+                while len(to_check) > 0:
+                    temp = to_check.pop()
+                    if isinstance(temp, list):
+                        yield flatten_cluster_node(temp)
+                    else:
+                        if temp[2] > 0:
+                            t0 = flatten_cluster_node(temp[0])
+                            t1 = flatten_cluster_node(temp[1])
+                            if len(t0) < len(t1):
+                                yield t0
+                                yield t1
+                                if isinstance(temp[0], ClusterNode):
+                                    to_check.append(temp[0])
+                                if isinstance(temp[1], ClusterNode):
+                                    to_check.append(temp[1])
+                            else:
+                                yield t1
+                                yield t0
+                                if isinstance(temp[1], ClusterNode):
+                                    to_check.append(temp[1])
+                                if isinstance(temp[0], ClusterNode):
+                                    to_check.append(temp[0])
+
+
+            _linkage = hierarchy.linkage(
+                    processed_pair_wise_distance,
+                    method=self.app.pargs.linkage)
+            out = {
+                "linkage": self.app.pargs.linkage, 
+                "suggestions" : list(cluster_deconstructions(obs, _linkage))
+                }
+            formatter = ({
+                'text': lambda c: str(c),
+                'yaml': lambda c: yaml.safe_dump(c, default_flow_style=False),
+                'json': lambda c: json.dumps(c, indent=2)
+            })[self.app.pargs.format]
+            print(formatter(out))
 
 
 class CLI(cement.App):
