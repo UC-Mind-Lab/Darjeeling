@@ -90,5 +90,10 @@ class GenProgTestSuite(TestSuite[GenProgTest]):
         outcome = container.shell.run(command,
                                       cwd=self._workdir,
                                       time_limit=self._time_limit_seconds)  # noqa
+        test_output_file = "/tmp/test_output"
+        if container.filesystem.exists(test_output_file):
+            test_output = container.filesystem.read(test_output_file)
+        else:
+            test_output = "Failed To Save Output"
         successful = outcome.returncode == 0
-        return TestOutcome(successful=successful, time_taken=outcome.duration)
+        return TestOutcome(successful=successful, time_taken=outcome.duration, output=test_output)

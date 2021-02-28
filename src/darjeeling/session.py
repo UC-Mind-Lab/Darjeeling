@@ -176,6 +176,7 @@ class Session(DarjeelingEventProducer):
             except StopIteration:
                 pass
         else:
+            # Uses searcher.base.BaseSeacher.__iter__
             self._patches = list(self.searcher)
         if not self._patches:
             logger.info("failed to find a patch")

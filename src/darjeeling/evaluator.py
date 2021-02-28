@@ -39,6 +39,37 @@ if typing.TYPE_CHECKING:
 Evaluation = Tuple[Candidate, CandidateOutcome]
 
 
+def save_patch_to_json_file(candidate, test_outcomes):
+    import json
+    import os
+
+    folder_path = "./patch_jsons"
+    if not os.path.isdir(folder_path):
+        os.mkdir(folder_path)
+    # _, _, patch_jsons = next(os.walk(folder_path))
+    # patch_number = len(patch_jsons)
+
+    # patch_file_path = f"{folder_path}/{patch_number}.json"
+    patch_file_path = f"{folder_path}/{candidate.id}.json"
+
+    patch_information = {
+            "diff": str(candidate.to_diff()),
+            "tests": {}
+            }
+    for test_name in test_outcomes:
+        patch_information["tests"][test_name] = {
+                "successful": 
+                    test_outcomes[test_name].successful,
+                "output":
+                    test_outcomes[test_name].output
+                }
+
+    logger.debug(f"ASS DIRTY")
+    with open(patch_file_path, "w") as fout:
+        json.dump(patch_information, fout)
+        logger.debug(f"Saved {patch_file_path}")
+
+
 class Evaluator(DarjeelingEventProducer):
     def __init__(self,
                  problem: 'Problem',
@@ -213,6 +244,7 @@ class Evaluator(DarjeelingEventProducer):
             # if no tests remain, construct a partial view of the candidate
             # outcome
             if not tests:
+                save_patch_to_json_file(candidate, test_outcomes)
                 return CandidateOutcome(cached_outcome.build,
                                         test_outcomes,
                                         not known_bad_patch)
@@ -229,8 +261,8 @@ class Evaluator(DarjeelingEventProducer):
                 logger.debug(f"built candidate: {candidate}")
                 logger.debug(f"executing tests for candidate: {candidate}")
                 for test in tests:
-                    if self.__terminate_early and known_bad_patch:
-                        break
+                    # if self.__terminate_early and known_bad_patch:
+                        # break
                     test_outcome = self._run_test(container, candidate, test)
                     test_outcomes = \
                         test_outcomes.with_outcome(test.name, test_outcome)
@@ -240,16 +272,18 @@ class Evaluator(DarjeelingEventProducer):
                 # execute all remaining tests to determine whether or not
                 # this patch is an acceptable repair
                 #
-                # FIXME check if outcome is redundant!
-                if not known_bad_patch:
+                # FIXME check if outcome is redundant!a
+                if True: # not known_bad_patch:
                     for test in remainder:
-                        if known_bad_patch:
+                        if False: # known_bad_patch:
                             break
                         test_outcome = self._run_test(container, candidate, test)
                         test_outcomes = \
                             test_outcomes.with_outcome(test.name, test_outcome)
                         known_bad_patch |= not test_outcome.successful
 
+                # Save information separately
+                save_patch_to_json_file(candidate, test_outcomes)
                 return CandidateOutcome(outcome_build,
                                         test_outcomes,
                                         not known_bad_patch)
@@ -257,6 +291,7 @@ class Evaluator(DarjeelingEventProducer):
             logger.debug(f"failed to build candidate: {candidate}")
             outcome_build = BuildOutcome(False, timer_build.duration)
             self.dispatch(BuildFinished(candidate, outcome_build))
+            save_patch_to_json_file(candidate, TestOutcomeSet())
             return CandidateOutcome(outcome_build,
                                     TestOutcomeSet(),
                                     False)

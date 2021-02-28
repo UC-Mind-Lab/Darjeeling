@@ -128,6 +128,7 @@ class TestOutcome:
     """Records the outcome of a test execution."""
     successful: bool
     time_taken: float
+    output: Optional[str] = attr.ib(default=None)
 
     @staticmethod
     def from_bugzoo(outcome: BugZooTestOutcome) -> 'TestOutcome':
@@ -136,11 +137,13 @@ class TestOutcome:
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> 'TestOutcome':
-        return TestOutcome(d['successful'], d['time-taken'])
+        return TestOutcome(d['successful'], d['time-taken'], 
+                d.get('output', None))
 
     def to_dict(self) -> Dict[str, Any]:
         return {'successful': self.successful,
-                'time-taken': self.time_taken}
+                'time-taken': self.time_taken,
+                'output': self.output}
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
