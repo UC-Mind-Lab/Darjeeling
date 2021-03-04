@@ -143,7 +143,7 @@ class GCovCollector(CoverageCollector):
                 lambda h: top_lib == os.path.split(os.path.split(h)[0])[1],
                 hits))
         if len(hits) == 1:
-            return hits[0]
+            return hits[0].replace(self._source_directory, "")
         else:
             raise ValueError(f"Don't know how to resolve: {filename}")
         return filename
