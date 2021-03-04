@@ -132,21 +132,20 @@ class GCovCollector(CoverageCollector):
         lines = lines - _LINES_TO_REMOVE
         return set(i - _NUM_INSTRUMENTATION_LINES for i in lines)
 
-    def libraries_path(self, filename:str, files):
-        # Should be a configuration option later
-        library_locations = [self._source_directory]
-        for lib_loc in library_locations:
-            hits = files.find(lib_loc, os.path.basename(filename))
-            if len(hits) > 0:
-                # Whittle down the options
-                top_lib = os.path.split(os.path.split(filename)[0])[0]
-                hits = list(filter(
-                    lambda h: top_lib == os.path.split(os.path.split(h)[0])[1],
-                    hits))
-                if len(hits) == 1:
-                    return hits[0]
-                else:
-                    raise ValueError(f"Don't know how to resolve: {filename}")
+    def libraries_path(self, filename:str):
+        hits = list(filter(
+            lambda sf: os.path.basename(filename) == os.path.basename(sf),
+            self._source_filenames))
+        if len(hits) > 1:
+            # Whittle down the options
+            top_lib = os.path.split(os.path.split(filename)[0])[0]
+            hits = list(filter(
+                lambda h: top_lib == os.path.split(os.path.split(h)[0])[1],
+                hits))
+        if len(hits) == 1:
+            return hits[0]
+        else:
+            raise ValueError(f"Don't know how to resolve: {filename}")
         return filename
 
     def _has_source_file(self, filename_relative: str) -> bool:
@@ -155,18 +154,18 @@ class GCovCollector(CoverageCollector):
         return filename_absolute in self._source_filenames
 
     # FIXME is this a general solution?
-    def _resolve_filepath(self, filename_relative: str, files) -> str:
+    def _resolve_filepath(self, filename_relative: str) -> str:
         if not filename_relative:
             raise ValueError('failed to resolve path')
         if ".libs" in filename_relative:
-            filename_relative = self.libraries_path(filename_relative, files)
+            filename_relative = self.libraries_path(filename_relative)
         if self._has_source_file(filename_relative):
             return filename_relative
 
         filename_relative_child = '/'.join(filename_relative.split('/')[1:])
-        return self._resolve_filepath(filename_relative_child, files)
+        return self._resolve_filepath(filename_relative_child)
 
-    def _parse_xml_report(self, root: ET.Element, files) -> FileLineSet:
+    def _parse_xml_report(self, root: ET.Element) -> FileLineSet:
         packages_node = root.find('packages')
         assert packages_node
         package_nodes = packages_node.findall('package')
@@ -177,7 +176,7 @@ class GCovCollector(CoverageCollector):
             filename = node.attrib['filename']
             try:
                 filename_original = filename
-                filename = self._resolve_filepath(filename, files)
+                filename = self._resolve_filepath(filename)
                 logger.trace(f"resolving path '{filename_original}' "
                              f"-> '{filename}'")
             except ValueError:
@@ -185,16 +184,16 @@ class GCovCollector(CoverageCollector):
                 continue
 
             lines = self._read_line_coverage_for_class(node)
-            lines = self._corrected_lines(filename, lines, files)
+            lines = self._corrected_lines(filename, lines)
             if lines:
                 filename_to_lines[filename] = lines
 
         return FileLineSet(filename_to_lines)
 
-    def _parse_xml_file_contents(self, contents: str, files) -> FileLineSet:
+    def _parse_xml_file_contents(self, contents: str) -> FileLineSet:
         logger.trace(f"Parsing gcovr report:\n{contents}")
         root = ET.fromstring(contents)
-        return self._parse_xml_report(root, files)
+        return self._parse_xml_report(root)
 
     def _extract(self, container: 'ProgramContainer') -> FileLineSet:
         files = container.filesystem
@@ -205,7 +204,7 @@ class GCovCollector(CoverageCollector):
         shell.check_call(command, cwd=self._source_directory)
         xml_file_contents = files.read(temporary_filename)
 
-        return self._parse_xml_file_contents(xml_file_contents, files)
+        return self._parse_xml_file_contents(xml_file_contents)
 
     def _prepare(self, container: 'ProgramContainer') -> None:
         """
