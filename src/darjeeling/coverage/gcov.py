@@ -52,7 +52,6 @@ _INSTRUMENTATION = (
     "}\n"
     "/* DARJEELING :: INSTRUMENTATION :: END */\n"
 )
-_INSTRUMENTATION = ""
 _NUM_INSTRUMENTATION_LINES = _INSTRUMENTATION.count('\n')
 _LINES_TO_REMOVE = set(range(1, _NUM_INSTRUMENTATION_LINES))
 
@@ -215,14 +214,13 @@ class GCovCollector(CoverageCollector):
         gcovr is installed inside the container.
         """
         files = container.filesystem
-        if len(_INSTRUMENTATION) > 0:
-            for filename in self._files_to_instrument:
-                logger.trace(f'adding gcov instrumentation to {filename}')
-                contents_original = files.read(filename)
-                logger.trace(f'original file [{filename}]:\n{contents_original}')
-                contents_instrumented = _INSTRUMENTATION + contents_original
-                logger.trace(f'instrumented file [{filename}]:\n{contents_instrumented}')
-                files.write(filename, contents_instrumented)
+        for filename in self._files_to_instrument:
+            logger.trace(f'adding gcov instrumentation to {filename}')
+            contents_original = files.read(filename)
+            logger.trace(f'original file [{filename}]:\n{contents_original}')
+            contents_instrumented = _INSTRUMENTATION + contents_original
+            logger.trace(f'instrumented file [{filename}]:\n{contents_instrumented}')
+            files.write(filename, contents_instrumented)
 
         build_instructions = self.program.build_instructions_for_coverage
         build_instructions.execute(container)
