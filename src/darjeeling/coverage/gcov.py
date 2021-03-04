@@ -84,7 +84,8 @@ class GCovCollectorConfig(CoverageCollectorConfig):
 
     def build(self,
               environment: 'Environment',
-              program: 'ProgramDescription'
+              program: 'ProgramDescription',
+              ban_files: Optional[FrozenSet[str]]
               ) -> 'CoverageCollector':
         source_directory = program.source_directory
         source_filenames = self._find_source_filenames(program)
@@ -96,7 +97,8 @@ class GCovCollectorConfig(CoverageCollectorConfig):
                                   program=program,
                                   source_directory=source_directory,
                                   source_filenames=source_filenames,
-                                  files_to_instrument=files_to_instrument)
+                                  files_to_instrument=files_to_instrument,
+                                  ban_files=ban_files)
         logger.trace(f"built coverage collector: {collector}")
         return collector
 
@@ -108,6 +110,7 @@ class GCovCollector(CoverageCollector):
     _files_to_instrument: FrozenSet[str]
     _source_filenames: FrozenSet[str]
     _environment: 'Environment' = attr.ib(repr=False)
+    _ban_files: Optional[FrozenSet[str]] = attr.ib(default=None)
 
     def _read_line_coverage_for_class(self, xml_class: ET.Element) -> Set[int]:
         xml_lines = xml_class.find('lines')
@@ -179,6 +182,9 @@ class GCovCollector(CoverageCollector):
                 filename = self._resolve_filepath(filename)
                 logger.trace(f"resolving path '{filename_original}' "
                              f"-> '{filename}'")
+                if filename in self._ban_files:
+                    logger.trace(f"'{filename}' is banned")
+                    continue
             except ValueError:
                 logger.warning(f'failed to resolve file: {filename}')
                 continue

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('CoveragePyCollector', 'CoveragePyCollectorConfig')
 
-from typing import Any, ClassVar, Dict, Mapping, Optional, Set
+from typing import Any, ClassVar, Dict, Mapping, Optional, Set, FrozenSet
 import json
 import typing
 
@@ -30,7 +30,8 @@ class CoveragePyCollectorConfig(CoverageCollectorConfig):
 
     def build(self,
               environment: 'Environment',
-              program: 'ProgramDescription'
+              program: 'ProgramDescription',
+              ban_files: Optional[FrozenSet[str]]
               ) -> 'CoverageCollector':
         return CoveragePyCollector(program=program)
 

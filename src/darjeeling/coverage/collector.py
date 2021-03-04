@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('CoverageCollector',)
 
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Dict, Mapping, Optional, Type, FrozenSet
 from typing_extensions import final
 import abc
 
@@ -37,7 +37,8 @@ class CoverageCollectorConfig(abc.ABC):
     @abc.abstractmethod
     def build(self,
               environment: Environment,
-              program: ProgramDescription
+              program: ProgramDescription,
+              ban_files: Optional[FrozenSet[str]]
               ) -> 'CoverageCollector':
         ...
 

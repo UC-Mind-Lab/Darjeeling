@@ -40,6 +40,7 @@ class CoverageConfig:
         If coverage is restricted to the empty set of files.
     """
     collector_config: CoverageCollectorConfig = attr.ib()
+    ban_files: Optional[FrozenSet[str]] = attr.ib(default=None)
     restrict_to_files: Optional[FrozenSet[str]] = attr.ib(default=None)
     restrict_to_lines: Optional[Set[FileLine]] = attr.ib(default=None)
     load_from_file: Optional[str] = attr.ib(default=None)
@@ -58,10 +59,18 @@ class CoverageConfig:
         if not value:
             raise ValueError("cannot restrict to empty set of lines")
 
+    @ban_files.validator
+    def validate_ban_files(self, attr, value) -> None:
+        if value is None:
+            return
+        if not value:
+            raise ValueError("cannot ban an empty set of files")
+
     @staticmethod
     def from_dict(d: Dict[str, Any],
                   dir_: Optional[str] = None
                   ) -> 'CoverageConfig':
+        ban_files: Optional[FrozenSet[str]] = None
         restrict_to_files: Optional[FrozenSet[str]] = None
         restrict_to_lines: Optional[Set[FileLine]] = None
         load_from_file: Optional[str] = None
@@ -71,6 +80,9 @@ class CoverageConfig:
             if not os.path.isabs(load_from_file):
                 assert dir_ is not None
                 load_from_file = os.path.join(dir_, load_from_file)
+        if 'ban-files' in d:
+            ban_files: List[str] = d['ban-files']
+            ban_files = frozenset(ban_files)
         if 'restrict-to-files' in d:
             restrict_to_files_list: List[str] = d['restrict-to-files']
             restrict_to_files = frozenset(restrict_to_files_list)
@@ -84,6 +96,7 @@ class CoverageConfig:
             CoverageCollectorConfig.from_dict(d['method'], dir_)
 
         return CoverageConfig(collector_config=collector_config,
+                              ban_files=ban_files,
                               restrict_to_files=restrict_to_files,
                               restrict_to_lines=restrict_to_lines,
                               load_from_file=load_from_file)
@@ -100,7 +113,8 @@ class CoverageConfig:
             logger.info(f'loading coverage from file: {fn_coverage}')
             coverage = TestCoverageMap.from_file(fn_coverage)
         else:
-            collector = self.collector_config.build(environment, program)
+            collector = self.collector_config.build(environment, 
+                    program, self.ban_files)
             coverage = collector.collect()
 
         if self.restrict_to_files:
