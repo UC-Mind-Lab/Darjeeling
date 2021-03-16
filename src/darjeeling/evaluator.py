@@ -158,8 +158,10 @@ class Evaluator(DarjeelingEventProducer):
                              f"test [{test.name}] for "
                              f"candidate [{candidate}]")
             self.dispatch(TestExecutionError(candidate, test, err))
-            outcome = TestOutcome(successful=False,
-                                  time_taken=timer.duration)
+            outcome = TestOutcome(test.name,
+                                  successful=False,
+                                  time_taken=timer.duration,
+                                  output=None)
 
         if not outcome.successful:
             logger.debug(f"* test failed: {test.name} ({candidate})")
@@ -182,7 +184,7 @@ class Evaluator(DarjeelingEventProducer):
 
         # compute outcomes for redundant tests
         test_outcomes = TestOutcomeSet({
-            t.name: TestOutcome(True, 0.0) for t in redundant
+            t.name: TestOutcome(t.name, True, 0.0, None) for t in redundant
         })  # type: TestOutcomeSet
 
         # if we have evidence that this patch is not a complete repair,
