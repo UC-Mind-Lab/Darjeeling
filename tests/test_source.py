@@ -44,11 +44,11 @@ def test_filename(simple_file):
 
 
 def test_num_lines(simple_file):
-    assert simple_file.num_lines == 18
+    assert simple_file.num_lines == 22
 
 
 def test_read_line(simple_file):
     read_line = simple_file.read_line
     assert read_line(2) == "class TestOutcome:"
     assert read_line(1) == "@attr.s(frozen=True, slots=True)"
-    assert read_line(18) == "                'time-taken': self.time_taken}"
+    assert read_line(18) == "                d['time-taken'], d.get('output', None))"
