@@ -229,8 +229,8 @@ class Session(DarjeelingEventProducer):
                 with open(fn_outcome, 'w') as f:
                     json.dump(outcome.to_dict(), f)
             except OSError:
-                logger.exception(f"failed to write test information:"\
-                        f"{fn_outcome}")
+                logger.exception(f"failed to write test information:"
+                                 f"{fn_outcome}")
                 raise
             logger.debug(f"wrote test information to {fn_outcome}")
         logger.debug("saved patches to disk")

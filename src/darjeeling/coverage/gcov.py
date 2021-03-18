@@ -116,8 +116,8 @@ class GCovCollector(CoverageCollector):
         xml_lines = xml_class.find('lines')
         assert xml_lines
         lines = xml_lines.findall('line')
-        return set(int(l.attrib['number']) for l in lines
-                   if int(l.attrib['hits']) > 0)
+        return set(int(line.attrib['number']) for line in lines
+                   if int(line.attrib['hits']) > 0)
 
     def _corrected_lines(self,
                          relative_filename: str,
@@ -135,7 +135,7 @@ class GCovCollector(CoverageCollector):
         lines = lines - _LINES_TO_REMOVE
         return set(i - _NUM_INSTRUMENTATION_LINES for i in lines)
 
-    def libraries_path(self, filename:str):
+    def libraries_path(self, filename: str):
         hits = list(filter(
             lambda sf: os.path.basename(filename) == os.path.basename(sf),
             self._source_filenames))
@@ -182,7 +182,8 @@ class GCovCollector(CoverageCollector):
                 filename = self._resolve_filepath(filename)
                 logger.trace(f"resolving path '{filename_original}' "
                              f"-> '{filename}'")
-                if filename in self._ban_files:
+                if self._ban_files is not None and\
+                        filename in self._ban_files:
                     logger.trace(f"'{filename}' is banned")
                     continue
             except ValueError:

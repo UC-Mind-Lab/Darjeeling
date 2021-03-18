@@ -103,4 +103,3 @@ class ProgramTransformationsConfig:
         """Constructs the transformation space described by this config."""
         schemas = [schema.build(problem, snippets) for schema in self.schemas]
         return ProgramTransformations.build(schemas, problem, consider_all_lines)
-

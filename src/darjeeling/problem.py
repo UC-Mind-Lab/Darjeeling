@@ -95,7 +95,7 @@ class Problem:
         logger.info('* failing tests: {}',
                     ', '.join([t.name for t in failing_tests]))
         if not failing_tests and not config.allow_no_failing_tests:
-           raise NoFailingTests
+            raise NoFailingTests
 
         # perform test ordering
         def ordering(x: Test, y: Test) -> int:
@@ -127,9 +127,9 @@ class Problem:
 
         logger.debug("storing contents of source code files")
         if config.consider_all_lines:
-            source_files = set(l.filename for l in coverage.locations)
+            source_files = set(loc.filename for loc in coverage.locations)
         else:
-            source_files = set(l.filename for l in coverage.failing.locations)
+            source_files = set(loc.filename for loc in coverage.failing.locations)
         source_loader = ProgramSourceLoader(environment)
         sources = source_loader.for_program(program, files=source_files)
         logger.debug("stored contents of source code files")
@@ -160,7 +160,7 @@ class Problem:
         logger.info("implicated files [{}]:\n* {}", len(files),
                     '\n* '.join(files))
         if len(lines) == 0 and not self.config.allow_no_failing_tests:
-           raise NoImplicatedLines
+            raise NoImplicatedLines
 
     @property
     def settings(self) -> 'OptimizationsConfig':
@@ -190,4 +190,4 @@ class Problem:
 
     @property
     def implicated_files(self) -> Iterator[str]:
-        yield from set(l.filename for l in self.coverage.failing.locations)
+        yield from set(loc.filename for loc in self.coverage.failing.locations)

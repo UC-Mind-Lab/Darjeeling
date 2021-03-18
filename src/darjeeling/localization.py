@@ -212,7 +212,7 @@ class Localization:
         lines_other: Set[FileLine] = set(other._lines)
         if lines_self != lines_other:
             return False
-        return all(self[l] == other[l] for l in lines_self)
+        return all(self[line] == other[line] for line in lines_self)
 
     def to_dict(self) -> Dict[str, float]:
         """
@@ -260,7 +260,7 @@ class Localization:
         Returns a variant of this fault localization that does not contain
         lines from any of the specified files.
         """
-        lines = [l for l in self if l.filename not in files_to_exclude]
+        lines = [line for line in self if line.filename not in files_to_exclude]
         return self.restrict_to_lines(lines)
 
     def exclude_lines(self, lines: Iterable[FileLine]) -> 'Localization':
@@ -290,7 +290,7 @@ class Localization:
         Returns a variant of this fault localization that is restricted to
         lines that belong to a given set of files.
         """
-        lines = [l for l in self if l.filename in restricted_files]
+        lines = [line for line in self if line.filename in restricted_files]
         return self.restrict_to_lines(lines)
 
     def restrict_to_lines(self,
@@ -304,8 +304,8 @@ class Localization:
             NoImplicatedLines: if no lines are determined to be suspicious
                 within the resulting localization.
         """
-        scores = {l: s for (l, s) in self.__line_to_score.items()
-                  if l in lines}
+        scores = {line: s for (line, s) in self.__line_to_score.items()
+                  if line in lines}
         return Localization(scores)
 
     def sample(self) -> FileLine:
@@ -331,6 +331,6 @@ class Localization:
 
     def __repr__(self) -> str:
         # FIXME order!
-        repr_scores = ["  {}: {:.2f}".format(str(l), self[l])
-                       for l in sorted(self._lines)]
+        repr_scores = ["  {}: {:.2f}".format(str(line), self[line])
+                       for line in sorted(self._lines)]
         return 'Localization(\n{})'.format(';\n'.join(repr_scores))

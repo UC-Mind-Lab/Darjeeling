@@ -94,9 +94,9 @@ class GenProgTestSuite(TestSuite[GenProgTest]):
 
         output_path = os.path.join(self._workdir, "test_output")
         if container.filesystem.isfile(output_path):
-            output:Optional[str] = container.filesystem.read(output_path)
+            output: Optional[str] = container.filesystem.read(output_path)
         else:
             output = None
 
-        return TestOutcome(test.name, successful=successful, 
-                time_taken=outcome.duration, output=output)
+        return TestOutcome(test.name, successful=successful,
+                           time_taken=outcome.duration, output=output)

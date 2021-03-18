@@ -81,8 +81,8 @@ class CoverageConfig:
                 assert dir_ is not None
                 load_from_file = os.path.join(dir_, load_from_file)
         if 'ban-files' in d:
-            ban_files: List[str] = d['ban-files']
-            ban_files = frozenset(ban_files)
+            ban_files_list: List[str] = d['ban-files']
+            ban_files = frozenset(ban_files_list)
         if 'restrict-to-files' in d:
             restrict_to_files_list: List[str] = d['restrict-to-files']
             restrict_to_files = frozenset(restrict_to_files_list)
@@ -113,8 +113,8 @@ class CoverageConfig:
             logger.info(f'loading coverage from file: {fn_coverage}')
             coverage = TestCoverageMap.from_file(fn_coverage)
         else:
-            collector = self.collector_config.build(environment, 
-                    program, self.ban_files)
+            collector = self.collector_config.build(environment,
+                                                    program, self.ban_files)
             coverage = collector.collect()
 
         if self.restrict_to_files:

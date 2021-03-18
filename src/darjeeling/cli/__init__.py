@@ -13,15 +13,15 @@ import bugzoo
 import bugzoo.server
 import cement
 import pyroglyph
-import scipy
 from scipy.cluster import hierarchy
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist
 import yaml
 
 from ..environment import Environment
 from ..problem import Problem
 from ..version import __version__ as VERSION
 from ..config import Config
+from ..core import TestCoverageMap
 from ..events import CsvEventLogger, WebSocketEventHandler
 from ..plugins import LOADED_PLUGINS
 from ..resources import ResourceUsageTracker
@@ -298,7 +298,6 @@ class BaseController(cement.Controller):
             else:
                 sys.exit(1)
 
-
     @cement.ex(
         help='Gives suggestions of groups of test cases to invalidate',
         arguments=[
@@ -334,6 +333,7 @@ class BaseController(cement.Controller):
                 sys.exit(1)
 
             coverage = session.coverage
+
             # Clustering stuff
             def test_name_pair(name1, name2):
                 if name1 < name2:
@@ -341,44 +341,41 @@ class BaseController(cement.Controller):
                 else:
                     return name2, name1
 
-
-            def test_pairs(coverage:'TestCoverageMap'):
+            def test_pairs(coverage: TestCoverageMap):
                 pairs = set()
                 for tc1 in coverage:
                     for tc2 in coverage:
                         pairs.add(test_name_pair(tc1, tc2))
                 return pairs
 
-
-            def test_observations(coverage:'TestCoverageMap'):
+            def test_observations(coverage: TestCoverageMap):
                 return [[t] for t in coverage]
 
-
-            def jaccard_indices(coverage:'TestCoverageMap'):
+            def jaccard_indices(coverage: TestCoverageMap):
                 indices = dict()
                 for tc1Name, tc2Name in test_pairs(coverage):
                     tc1Lines = coverage[tc1Name].lines
                     tc2Lines = coverage[tc2Name].lines
                     intersection = tc1Lines.intersection(tc2Lines)
                     union = tc1Lines.union(tc2Lines)
-                    jaccardIndex = len(intersection)/len(union)
+                    jaccardIndex = len(intersection) / len(union)
                     indices[(tc1Name, tc2Name)] = jaccardIndex
                 return indices
 
-
             indices = jaccard_indices(coverage)
 
-
             obs = test_observations(coverage)
+
             def pair_wise_distance(u, v, indices):
                 # Return the jaccard distance
-                return 1-indices[test_name_pair(u[0], v[0])]
+                return 1 - indices[test_name_pair(u[0], v[0])]
 
             p_hack = functools.partial(pair_wise_distance, indices=indices)
             processed_pair_wise_distance = pdist(obs, p_hack)
 
             def cluster_deconstructions(observations, calc_linkage):
                 ClusterNode = namedtuple("ClusterNode", ["cluster1", "cluster2", "distance"])
+
                 def flatten_cluster_node(cl_node):
                     def help(cl):
                         if isinstance(cl, list):
@@ -391,13 +388,12 @@ class BaseController(cement.Controller):
                     return list(sorted(help(cl_node)))
 
                 # Build the clusters
-                og_number = len(observations)
                 for record in calc_linkage:
                     observations.append(ClusterNode(
-                        observations[int(record[0])], 
+                        observations[int(record[0])],
                         observations[int(record[1])],
                         record[2]
-                        ))
+                    ))
 
                 to_check = [observations[-1]]
 
@@ -424,14 +420,12 @@ class BaseController(cement.Controller):
                                 if isinstance(temp[0], ClusterNode):
                                     to_check.append(temp[0])
 
-
-            _linkage = hierarchy.linkage(
-                    processed_pair_wise_distance,
-                    method=self.app.pargs.linkage)
+            _linkage = hierarchy.linkage(processed_pair_wise_distance,
+                                         method=self.app.pargs.linkage)
             out = {
-                "linkage": self.app.pargs.linkage, 
-                "suggestions" : list(cluster_deconstructions(obs, _linkage))
-                }
+                "linkage": self.app.pargs.linkage,
+                "suggestions": list(cluster_deconstructions(obs, _linkage))
+            }
             formatter = ({
                 'text': lambda c: str(c),
                 'yaml': lambda c: yaml.safe_dump(c, default_flow_style=False),

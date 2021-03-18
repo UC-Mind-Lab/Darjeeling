@@ -104,7 +104,7 @@ class Language(Enum):
     @classmethod
     def find(cls, name: str) -> 'Language':
         try:
-            return next(l for l in cls if l.value == name)
+            return next(lang for lang in cls if lang.value == name)
         except StopIteration:
             raise LanguageNotSupported(name)
 
@@ -141,8 +141,8 @@ class TestOutcome:
     def from_dict(d: Dict[str, Any], name=None) -> 'TestOutcome':
         if name is None:
             name = "???"
-        return TestOutcome(d.get('name', name), d['successful'], 
-                d['time-taken'], d.get('output', None))
+        return TestOutcome(d.get('name', name), d['successful'],
+                           d['time-taken'], d.get('output', None))
 
     def to_dict(self) -> Dict[str, Any]:
         return {'name': self.name,
@@ -310,7 +310,7 @@ class TestCoverageMap(Mapping[str, TestCoverage]):
             out_lines.append(f'{name_test} [{result}]: {{')
             out_lines.extend('  ' + s for s in str(lines_covered).split('\n'))
             out_lines.append('}')
-        out = '\n'.join(f'  {l}' for l in out_lines)
+        out = '\n'.join(f'  {line}' for line in out_lines)
         out = f'{{\n{out}\n}}'
         return out
 

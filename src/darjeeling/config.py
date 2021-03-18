@@ -227,7 +227,7 @@ class Config:
             if not isinstance(yml['consider-all-lines'], bool):
                 err("'consider-all-lines' property should be an bool")
             consider_all_lines = yml['consider-all-lines']
-            
+
         if 'allow-no-failing-tests' in yml:
             if not isinstance(yml['allow-no-failing-tests'], bool):
                 err("'allow-no-failing-tests' property should be an bool")
