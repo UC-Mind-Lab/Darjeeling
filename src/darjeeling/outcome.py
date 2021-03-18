@@ -11,7 +11,7 @@ __all__ = (
     'CandidateOutcomeStore'
 )
 
-from typing import Any, Dict, Iterator, Mapping
+from typing import Any, Dict, Iterator, Mapping, Optional
 
 import attr
 
@@ -29,7 +29,7 @@ class CandidateOutcome:
     def with_test_outcome(self,
                           test: str,
                           successful: bool,
-                          output: str,
+                          output: Optional[str],
                           time_taken: float
                           ) -> 'CandidateOutcome':
         outcome = TestOutcome(test, successful, time_taken, output)

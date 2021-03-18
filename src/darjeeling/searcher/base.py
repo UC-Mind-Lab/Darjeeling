@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('Searcher',)
 
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 import abc
 import typing
 
@@ -89,7 +89,7 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
         return self.__stopped
 
     @abc.abstractmethod
-    def run(self) -> Iterator[Candidate]:
+    def run(self) -> Iterator[Tuple[Candidate, CandidateOutcome]]:
         ...
 
     def evaluate(self, candidate: Candidate) -> None:
@@ -99,7 +99,7 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
     def evaluate_all(self,
                      candidates: List[Candidate],
                      results: Optional[Dict[Candidate, CandidateOutcome]] = None
-                     ) -> Iterator[Candidate]:
+                     ) -> Iterator[Tuple[Candidate, CandidateOutcome]]:
         """
         Evaluates all given candidate patches and blocks until all have been
         evaluated (or the search has been terminated).
@@ -135,7 +135,7 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
     def as_evaluated(self) -> Iterator[Evaluation]:
         yield from self.__evaluator.as_completed()
 
-    def __iter__(self) -> Iterator[Candidate]:
+    def __iter__(self) -> Iterator[Tuple[Candidate, CandidateOutcome]]:
         """
         Returns a lazy stream of acceptable patches.
 
@@ -153,9 +153,9 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
         stopwatch.start()
 
         try:
-            for repair in self.run():
+            for repair, outcome in self.run():
                 stopwatch.stop()
-                yield repair
+                yield repair, outcome
                 stopwatch.start()
         except SearchExhausted:
             logger.info("all candidate patches have been exhausted")
