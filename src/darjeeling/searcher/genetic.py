@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('GeneticSearcher',)
 
-from typing import Iterator, List, Optional, Dict, Any, Union
+from typing import Iterator, List, Optional, Dict, Any, Tuple, Union
 import random
 import typing
 
@@ -212,7 +212,7 @@ class GeneticSearcher(Searcher):
                 offspring += one_point_crossover(*parents)
         return offspring
 
-    def run(self) -> Iterator[Candidate]:
+    def run(self) -> Iterator[Tuple[Candidate, CandidateOutcome]]:
         outcomes: Dict[Candidate, CandidateOutcome] = {}
         logger.info("generating initial population...")
         pop = self.initial()

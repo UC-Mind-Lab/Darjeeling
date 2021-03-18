@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('ExhaustiveSearcher',)
 
-from typing import Any, Dict, Iterable, Iterator, Optional
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
 import typing
 
 from loguru import logger
@@ -9,6 +9,7 @@ from loguru import logger
 from .base import Searcher
 from .config import SearcherConfig
 from ..candidate import Candidate
+from ..outcome import CandidateOutcome
 from ..resources import ResourceUsageTracker
 from ..transformation import Transformation
 from ..exceptions import SearchExhausted
@@ -89,7 +90,7 @@ class ExhaustiveSearcher(Searcher):
             logger.debug('exhausted all candidate patches')
             raise SearchExhausted
 
-    def run(self) -> Iterator[Candidate]:
+    def run(self) -> Iterator[Tuple[Candidate, CandidateOutcome]]:
         for _ in range(self.num_workers):
             candidate = self._generate()
             self.evaluate(candidate)

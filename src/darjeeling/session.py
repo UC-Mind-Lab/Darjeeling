@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('Session',)
 
-from typing import Iterator, List
+from typing import Iterator, List, Tuple
 import glob
 import json
 import os
@@ -16,6 +16,7 @@ from loguru import logger
 from .core import Language, TestCoverageMap
 from .environment import Environment
 from .candidate import Candidate
+from .outcome import CandidateOutcome
 from .resources import ResourceUsageTracker
 from .searcher import Searcher
 from .problem import Problem
@@ -34,7 +35,7 @@ class Session(DarjeelingEventProducer):
     resources: ResourceUsageTracker = attr.ib()
     _problem: Problem = attr.ib()
     terminate_early: bool = attr.ib(default=True)
-    _patches: List[Candidate] = attr.ib(factory=list)
+    _patches: List[Tuple[Candidate, CandidateOutcome]] = attr.ib(factory=list)
 
     def __attrs_post_init__(self) -> None:
         DarjeelingEventProducer.__init__(self)

@@ -129,7 +129,7 @@ class TestOutcome:
     name: str
     successful: bool
     time_taken: float
-    output: str
+    output: Optional[str]
 
     @staticmethod
     def from_bugzoo(outcome: BugZooTestOutcome) -> 'TestOutcome':
