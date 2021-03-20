@@ -28,7 +28,8 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
                  threads: int = 1,
                  terminate_early: bool = True,
                  test_sample_size: Optional[Union[int, float]] = None,
-                 run_redundant_tests: bool = True
+                 run_redundant_tests: bool = False,
+                 allow_partial_patches: bool = False
                  ) -> None:
         """Constructs a new searcher.
 
@@ -45,6 +46,9 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
             Specifies if redundant tests should be run. Tests are deemed
             redundant if a candidate patch does not change lines that the
             test uses. Lines used are determined by test coverage.
+        allow_partial_patches: bool
+            Specifies that a patch is considered good if it doesn't break any
+            positive cases but does fix at least one negative test case.
         """
         logger.debug("constructing searcher")
         super().__init__()
@@ -56,7 +60,8 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
                                      num_workers=threads,
                                      terminate_early=terminate_early,
                                      sample_size=test_sample_size,
-                                     run_redundant_tests=run_redundant_tests)
+                                     run_redundant_tests=run_redundant_tests,
+                                     allow_partial_patches=allow_partial_patches)
 
         self.__started = False
         self.__stopped = False

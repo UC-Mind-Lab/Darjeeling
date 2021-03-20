@@ -67,6 +67,7 @@ class Session(DarjeelingEventProducer):
         logger.info(f"using optimizations: {cfg.optimizations}")
         logger.info(f"using coverage config: {cfg.coverage}")
         logger.info(f"running redundant tests? {cfg.run_redundant_tests}")
+        logger.info(f"allowing partial patches? {cfg.allow_partial_patches}")
         logger.info(f"considering all lines? {cfg.consider_all_lines}")
         logger.info(f"using random number generator seed: {cfg.seed}")
 
@@ -138,7 +139,8 @@ class Session(DarjeelingEventProducer):
                                     resources=resources,
                                     transformations=transformations,
                                     threads=cfg.threads,
-                                    run_redundant_tests=cfg.run_redundant_tests)
+                                    run_redundant_tests=cfg.run_redundant_tests,
+                                    allow_partial_patches=cfg.allow_partial_patches)
 
         # build session
         return Session(dir_patches=dir_patches,

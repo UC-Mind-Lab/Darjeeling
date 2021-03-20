@@ -122,6 +122,9 @@ class Config:
         Specifies if redundant tests should be run. Tests are deemed
         redundant if a candidate patch does not change lines that the
         test uses. Lines used are determined by test coverage.
+    allow_partial_patches: bool
+        Specifies that a patch is considered good if it doesn't break any
+        positive cases but does fix at least one negative test case.
     consider_all_lines: bool
         Specifies that all lines of code in the program should be considered
         when determining how to transform the program.
@@ -153,6 +156,7 @@ class Config:
     terminate_early: bool = attr.ib(default=True)
     threads: int = attr.ib(default=1)
     run_redundant_tests: bool = attr.ib(default=False)
+    allow_partial_patches: bool = attr.ib(default=False)
     consider_all_lines: bool = attr.ib(default=False)
     allow_no_failing_tests: bool = attr.ib(default=False)
 
@@ -182,6 +186,7 @@ class Config:
                  seed: Optional[int] = None,
                  threads: Optional[int] = None,
                  run_redundant_tests: bool = False,
+                 allow_partial_patches: bool = False,
                  consider_all_lines: bool = False,
                  allow_no_failing_tests: bool = False,
                  limit_candidates: Optional[int] = None,
@@ -222,6 +227,11 @@ class Config:
             if not isinstance(yml['run-redundant-tests'], bool):
                 err("'run-redundant-tests' property should be an bool")
             run_redundant_tests = yml['run-redundant-tests']
+
+        if 'allow-partial-patches' in yml:
+            if not isinstance(yml['allow-partial-patches'], bool):
+                err("'allow-partial-patches' property should be an bool")
+            allow_partial_patches = yml['allow-partial-patches']
 
         if 'consider-all-lines' in yml:
             if not isinstance(yml['consider-all-lines'], bool):
@@ -284,6 +294,7 @@ class Config:
         return Config(seed=seed,
                       threads=threads,
                       run_redundant_tests=run_redundant_tests,
+                      allow_partial_patches=allow_partial_patches,
                       consider_all_lines=consider_all_lines,
                       allow_no_failing_tests=allow_no_failing_tests,
                       terminate_early=terminate_early,

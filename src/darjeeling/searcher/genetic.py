@@ -57,7 +57,8 @@ class GeneticSearcherConfig(SearcherConfig):
               transformations: ProgramTransformations,
               *,
               threads: int = 1,
-              run_redundant_tests: bool = False
+              run_redundant_tests: bool = False,
+              allow_partial_patches: bool = False
               ) -> Searcher:
         return GeneticSearcher(problem=problem,
                                resources=resources,
@@ -69,7 +70,8 @@ class GeneticSearcherConfig(SearcherConfig):
                                rate_mutation=self.rate_mutation,
                                tournament_size=self.tournament_size,
                                test_sample_size=self.sample_size,
-                               run_redundant_tests=run_redundant_tests)
+                               run_redundant_tests=run_redundant_tests,
+                               allow_partial_patches=allow_partial_patches)
 
 
 class GeneticSearcher(Searcher):
@@ -84,7 +86,8 @@ class GeneticSearcher(Searcher):
                  rate_mutation: float = 1.0,
                  tournament_size: int = 2,
                  threads: int = 1,
-                 run_redundant_tests: bool = True,
+                 run_redundant_tests: bool = False,
+                 allow_partial_patches: bool = False,
                  test_sample_size: Optional[Union[int, float]] = None
                  ) -> None:
         self.__population_size = population_size
@@ -105,6 +108,7 @@ class GeneticSearcher(Searcher):
                          resources=resources,
                          threads=threads,
                          run_redundant_tests=run_redundant_tests,
+                         allow_partial_patches=allow_partial_patches,
                          test_sample_size=test_sample_size,
                          terminate_early=False)
 

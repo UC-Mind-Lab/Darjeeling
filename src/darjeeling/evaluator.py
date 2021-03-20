@@ -48,7 +48,8 @@ class Evaluator(DarjeelingEventProducer):
                  terminate_early: bool = True,
                  sample_size: Optional[Union[float, int]] = None,
                  outcomes: Optional[CandidateOutcomeStore] = None,
-                 run_redundant_tests: bool = False
+                 run_redundant_tests: bool = False,
+                 allow_partial_patches: bool = False
                  ) -> None:
         super().__init__()
         self.__problem = problem
@@ -61,6 +62,7 @@ class Evaluator(DarjeelingEventProducer):
         self.__terminate_early = terminate_early
         self.__outcomes = outcomes or CandidateOutcomeStore()
         self.__run_redundant_tests = run_redundant_tests
+        self.__allow_partial_patches = allow_partial_patches
 
         self.__tests_failing: FrozenSet[Test] = \
             frozenset(self.__problem.failing_tests)
@@ -191,6 +193,11 @@ class Evaluator(DarjeelingEventProducer):
         # there is no need to extend beyond the test sample in the event
         # that all tests in the sample are successful
         known_bad_patch = False
+        # If the patch doesn't break positive tests, but does fix at least
+        # one negative test we are interested in it if allow_partial_patches
+        # is set to True
+        breaks_positive_test = False
+        fixes_negative_test = False
 
         if candidate in outcomes:
             logger.info(f"found candidate in cache: {candidate}")
@@ -237,24 +244,45 @@ class Evaluator(DarjeelingEventProducer):
                     test_outcomes = \
                         test_outcomes.with_outcome(test.name, test_outcome)
                     known_bad_patch |= not test_outcome.successful
+                    # If it breaks any positive test
+                    if "p" in test.name:
+                        breaks_positive_test &= test_outcome.successful
+                    # If it fixes a negative test
+                    if "n" in test.name:
+                        fixes_negative_test |= test_outcome.successful
 
                 # if there is no evidence that this patch fails any tests,
                 # execute all remaining tests to determine whether or not
                 # this patch is an acceptable repair
                 #
                 # FIXME check if outcome is redundant!
-                if not known_bad_patch:
+                if not known_bad_patch or\
+                   (self.__allow_partial_patches and not breaks_positive_test):
                     for test in remainder:
-                        if known_bad_patch:
+                        if self.__allow_partial_patches:
+                            if breaks_positive_test:
+                                break
+                        elif known_bad_patch:
                             break
                         test_outcome = self._run_test(container, candidate, test)
                         test_outcomes = \
                             test_outcomes.with_outcome(test.name, test_outcome)
                         known_bad_patch |= not test_outcome.successful
+                        # If it breaks any positive test
+                        if "p" in test.name:
+                            breaks_positive_test &= test_outcome.successful
+                        # If it fixes a negative test
+                        if "n" in test.name:
+                            fixes_negative_test |= test_outcome.successful
+
+                if self.__allow_partial_patches:
+                    is_repair = not breaks_positive_test and fixes_negative_test
+                else:
+                    is_repair = not known_bad_patch
 
                 return CandidateOutcome(outcome_build,
                                         test_outcomes,
-                                        not known_bad_patch)
+                                        is_repair)
         except BuildFailure:
             logger.debug(f"failed to build candidate: {candidate}")
             outcome_build = BuildOutcome(False, timer_build.duration)
