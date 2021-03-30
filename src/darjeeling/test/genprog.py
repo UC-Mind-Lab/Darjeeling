@@ -20,6 +20,7 @@ if typing.TYPE_CHECKING:
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class GenProgTest(Test):
     name: str
+    target: Any
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -29,6 +30,7 @@ class GenProgTestSuiteConfig(TestSuiteConfig):
     number_failing_tests: int
     number_passing_tests: int
     time_limit_seconds: int
+    target: str
 
     @classmethod
     def from_dict(cls,
@@ -40,6 +42,7 @@ class GenProgTestSuiteConfig(TestSuiteConfig):
         workdir = d['workdir']
         number_failing_tests: int = d['number-of-failing-tests']
         number_passing_tests: int = d['number-of-passing-tests']
+        target: str = d.get('target', "")
 
         if not os.path.isabs(workdir):
             m = "'workdir' property must be an absolute path"
@@ -53,15 +56,18 @@ class GenProgTestSuiteConfig(TestSuiteConfig):
         return GenProgTestSuiteConfig(workdir=workdir,
                                       number_failing_tests=number_failing_tests,
                                       number_passing_tests=number_passing_tests,
-                                      time_limit_seconds=time_limit_seconds)
+                                      time_limit_seconds=time_limit_seconds,
+                                      target=target)
 
     def build(self, environment: 'Environment') -> 'TestSuite':
         failing_test_numbers = range(1, self.number_failing_tests + 1)
         passing_test_numbers = range(1, self.number_passing_tests + 1)
         failing_test_names = [f'n{i}' for i in failing_test_numbers]
         passing_test_names = [f'p{i}' for i in passing_test_numbers]
-        failing_tests = tuple(GenProgTest(name) for name in failing_test_names)
-        passing_tests = tuple(GenProgTest(name) for name in passing_test_names)
+        failing_tests = tuple(GenProgTest(name, self.target) for name in
+                              failing_test_names)
+        passing_tests = tuple(GenProgTest(name, self.target) for name in
+                              passing_test_names)
         tests = failing_tests + passing_tests
         return GenProgTestSuite(environment=environment,
                                 tests=tests,
@@ -86,7 +92,7 @@ class GenProgTestSuite(TestSuite[GenProgTest]):
                 *,
                 coverage: bool = False
                 ) -> TestOutcome:
-        command = f'./test.sh {test.name}'
+        command = f'./test.sh {test.name} {test.target}'
         outcome = container.shell.run(command,
                                       cwd=self._workdir,
                                       time_limit=self._time_limit_seconds)  # noqa

@@ -202,7 +202,7 @@ class InsertReturnLine(LineTransformation):
             elif self.language.lower() == "python":
                 return f"return {self.target}\n"
             else:
-                raise BadConfigurationException("Unknown language {self.language}")
+                raise BadConfigurationException(f"Unknown language {self.language}")
 
         def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
             yield InsertReturnLine(self, line, self.insertion())
