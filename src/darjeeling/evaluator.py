@@ -249,7 +249,7 @@ class Evaluator(DarjeelingEventProducer):
                     known_bad_patch |= not test_outcome.successful
                     # If it breaks any positive test
                     if "p" in test.name:
-                        breaks_positive_test &= test_outcome.successful
+                        breaks_positive_test |= not test_outcome.successful
                     # If it fixes a negative test
                     if "n" in test.name:
                         fixes_negative_test |= test_outcome.successful
@@ -273,7 +273,7 @@ class Evaluator(DarjeelingEventProducer):
                         known_bad_patch |= not test_outcome.successful
                         # If it breaks any positive test
                         if "p" in test.name:
-                            breaks_positive_test &= test_outcome.successful
+                            breaks_positive_test |= not test_outcome.successful
                         # If it fixes a negative test
                         if "n" in test.name:
                             fixes_negative_test |= test_outcome.successful
