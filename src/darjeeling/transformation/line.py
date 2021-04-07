@@ -15,6 +15,7 @@ from .base import Transformation, TransformationSchema
 from .config import TransformationSchemaConfig
 from ..snippet import SnippetDatabase, LineSnippetDatabase
 from ..core import Replacement, FileLine, FileLocationRange, LocationRange
+from ..exceptions import BadConfigurationException
 
 if typing.TYPE_CHECKING:
     from ..problem import Problem
@@ -172,3 +173,114 @@ class InsertLine(LineTransformation):
                   ) -> 'TransformationSchema':
             assert isinstance(snippets, LineSnippetDatabase)
             return InsertLine.Schema(problem=problem, snippets=snippets)
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class InsertReturnLine(LineTransformation):
+    _schema: LineTransformationSchema
+    line: FileLine
+    insertion: str
+
+    @property
+    def schema(self) -> TransformationSchema:
+        return self._schema
+
+    def to_replacement(self) -> Replacement:
+        sources = self._schema._problem.sources
+        r = sources.line_to_location_range(self.line)
+        r = FileLocationRange(r.filename, LocationRange(r.start, r.start))
+        return Replacement(r, self.insertion)
+
+    @attr.s(frozen=True, auto_attribs=True)
+    class Schema(LineTransformationSchema):
+        target: Any
+        language: str
+
+        def insertion(self) -> str:
+            if self.language.lower() == "c" or self.language.lower() == "c++":
+                return f"return {self.target};\n"
+            elif self.language.lower() == "python":
+                return f"return {self.target}\n"
+            else:
+                raise BadConfigurationException(f"Unknown language {self.language}")
+
+        def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+            yield InsertReturnLine(self, line, self.insertion())
+
+    @attr.s(frozen=True, auto_attribs=True)
+    class SchemaConfig(TransformationSchemaConfig):
+        NAME = 'insert-return-line'
+        target: Any
+        language: str
+
+        @classmethod
+        def from_dict(cls,
+                      d: Mapping[str, Any],
+                      dir_: Optional[str] = None
+                      ) -> 'TransformationSchemaConfig':
+            target: Any = d["target"]
+            language: str = d["language"]
+            return InsertReturnLine.SchemaConfig(target, language)
+
+        def build(self,
+                  problem: 'Problem',
+                  snippets: SnippetDatabase
+                  ) -> 'TransformationSchema':
+            assert isinstance(snippets, LineSnippetDatabase)
+            return InsertReturnLine.Schema(problem=problem, snippets=snippets,
+                                           target=self.target,
+                                           language=self.language)
+
+
+@attr.s(frozen=True, auto_attribs=True)
+class InsertInfiniteWhileLine(LineTransformation):
+    _schema: LineTransformationSchema
+    line: FileLine
+    insertion: str
+
+    @property
+    def schema(self) -> TransformationSchema:
+        return self._schema
+
+    def to_replacement(self) -> Replacement:
+        sources = self._schema._problem.sources
+        r = sources.line_to_location_range(self.line)
+        r = FileLocationRange(r.filename, LocationRange(r.start, r.start))
+        return Replacement(r, self.insertion)
+
+    @attr.s(frozen=True, auto_attribs=True)
+    class Schema(LineTransformationSchema):
+        language: str
+
+        def insertion(self) -> str:
+            if self.language.lower() == "c" or self.language.lower() == "c++":
+                return "while(1){}\n"
+            elif self.language.lower() == "python":
+                return "while(True):\n\tpass"
+            else:
+                raise BadConfigurationException(f"Unknown language {self.language}")
+
+        def find_all_at_line(self, line: FileLine) -> Iterator[Transformation]:
+            yield InsertInfiniteWhileLine(self, line, self.insertion())
+
+    @attr.s(frozen=True, auto_attribs=True)
+    class SchemaConfig(TransformationSchemaConfig):
+        NAME = 'insert-infinite-while-line'
+        language: str
+
+        @classmethod
+        def from_dict(cls,
+                      d: Mapping[str, Any],
+                      dir_: Optional[str] = None
+                      ) -> 'TransformationSchemaConfig':
+            language: str = d["language"]
+            return InsertInfiniteWhileLine.SchemaConfig(language)
+
+        def build(self,
+                  problem: 'Problem',
+                  snippets: SnippetDatabase
+                  ) -> 'TransformationSchema':
+            assert isinstance(snippets, LineSnippetDatabase)
+            return InsertInfiniteWhileLine.Schema(problem=problem,
+                                                  snippets=snippets,
+                                                  language=self.language)
