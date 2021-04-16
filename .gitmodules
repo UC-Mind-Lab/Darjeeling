@@ -1,0 +1,3 @@
+[submodule "example/gsl"]
+	path = example/gsl
+	url = git@github.com:UC-Mind-Lab/GSL--Darjeeling-Work.git
