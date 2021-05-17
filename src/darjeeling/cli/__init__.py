@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
+from bugzoo.core.patch import Patch
 from collections import namedtuple
 from typing import Optional, Sequence
 import functools
 import glob
 import json
+from kaskara.clang.analysis import ClangStatement
 import os
+from sourcelocation import Location, FileLocation, FileLocationRange
 import sys
+
 
 from loguru import logger
 import attr
@@ -433,6 +437,92 @@ class BaseController(cement.Controller):
             })[self.app.pargs.format]
             print(formatter(out))
 
+    @cement.ex(
+        help='Gather information about a patch.',
+        arguments=[
+            (['filename'],
+             {'help': ('a Darjeeling configuration file describing a '
+                       'program and how it should be tested.')}),
+            (['patch'],
+             {'help': ('Patch to load.')}),
+            (['--format'],
+             {'help': 'the format that should be used for the coverage report',
+              'default': 'text',
+              'choices': ('text', 'yaml', 'json')})
+        ]
+    )
+    def patch_information(self) -> None:
+        """Generates suggestions of test cases to negate for a given program."""
+        # load the configuration file
+        filename: str = self.app.pargs.filename
+        filename = os.path.abspath(filename)
+        cfg_dir = os.path.dirname(filename)
+        with open(filename, 'r') as f:
+            yml = yaml.safe_load(f)
+        cfg = Config.from_yml(yml, dir_=cfg_dir)
+
+        # load the patch
+        patch_path: str  = self.app.pargs.patch
+        with open(patch_path, 'r') as fin:
+            patch: Patch = Patch.from_unidiff(fin.read())
+
+        patch_insertion_points = []
+        for file_patch in patch._Patch__file_patches:
+            for hunk in file_patch._FilePatch__hunks:
+                patch_insertion_points.append(
+                        FileLocation(
+                            file_patch._FilePatch__old_fn,
+                            Location(hunk._Hunk__old_start_at,1)))
+
+        with bugzoo.server.ephemeral(timeout_connection=120) as client_bugzoo:
+            environment = Environment(bugzoo=client_bugzoo)
+            try:
+                session = Session.from_config(environment, cfg)
+            except BadConfigurationException as exp:
+                print(f"ERROR: bad configuration file:\n{exp}")
+                sys.exit(1)
+
+            if session.problem.analysis is None:
+                print(f"ERROR: No analysis of the problem created")
+                sys.exit(1)
+
+            def file_location_to_string(location: FileLocation) -> str:
+                return f"{location.filename}:"\
+                       f"{location.location.line}:{location.location.column}"
+
+            def file_location_range_to_string(location: FileLocationRange)\
+                    -> str:
+                return f"{location.filename}:"\
+                       f"{location.start.line}:{location.start.column}::"\
+                       f"{location.stop.line}:{location.stop.column}"
+
+            # Function names of patch
+            locations_to_functions = {}
+            for loc in patch_insertion_points:
+                function = session.problem.analysis.functions.\
+                        encloses(loc)
+                locations_to_functions[file_location_to_string(loc)] = {
+                        'name': function.name,
+                        'location': file_location_range_to_string(
+                            function.location),
+                        'body_location': file_location_range_to_string(
+                            function.body_location),
+                        'return_type': function.return_type,
+                        'is_global': function.is_global,
+                        'is_pure': function.is_pure
+                        }
+
+            # Output information
+            information = {
+                    'locations_to_functions': locations_to_functions
+                    }
+            formatter = ({
+                'text': lambda c: str(c),
+                'yaml': lambda c: yaml.safe_dump(c,
+                    default_flow_style=False),
+                'json': lambda c: json.dumps(c, indent=2)
+            })[self.app.pargs.format]
+            print(formatter(information))
 
 class CLI(cement.App):
     class Meta:
