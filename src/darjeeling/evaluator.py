@@ -199,9 +199,9 @@ class Evaluator(DarjeelingEventProducer):
         breaks_positive_test = False
         fixes_negative_test = False
 
-        if candidate in outcomes:
+        if candidate.id in outcomes:
             logger.info(f"found candidate in cache: {candidate}")
-            cached_outcome = outcomes[candidate]
+            cached_outcome = outcomes[candidate.id]
             known_bad_patch |= not cached_outcome.is_repair
 
             if not cached_outcome.build.successful:
@@ -306,6 +306,7 @@ class Evaluator(DarjeelingEventProducer):
         self.dispatch(CandidateEvaluationStarted(candidate))
         try:
             outcome = self._evaluate(candidate)
+
         except Exception as err:
             m = "unexpected error occurred when evaluating candidate [{}]"
             logger.exception(m.format(candidate.id))
@@ -315,7 +316,11 @@ class Evaluator(DarjeelingEventProducer):
         else:
             self.dispatch(CandidateEvaluationFinished(candidate, outcome))
 
-        outcomes.record(candidate, outcome)
+        outcomes.record(candidate.id, outcome)
+        import json
+        with open("/tmp/outcomes.json", "w") as fout:
+            json.dump(outcomes.to_dict(), fout)
+
         with self.__lock:
             self.__queue_evaluated.put((candidate, outcome))
             self.__num_running -= 1

@@ -53,20 +53,32 @@ class CandidateOutcome:
 class CandidateOutcomeStore(Mapping[Candidate, CandidateOutcome]):
     """Maintains a record of candidate patch evaluation outcomes."""
     def __init__(self) -> None:
-        self.__outcomes: Dict[Candidate, CandidateOutcome] = {}
+        self.__outcomes: Dict[str, CandidateOutcome] = {}
+
+    def to_dict(self) -> dict:
+        _dict = {}
+        for candidate_id in self.__outcomes:
+            _dict[candidate_id] = self.__outcomes[candidate_id].to_dict()
+        return _dict
+
+    def from_dict(self, _dict: dict) -> "CandidateOutcomeStore":
+        COS = self.__class__()
+        for candidate_id in _dict:
+            COS.record(candidate_id, _dict[candidate_id])
+        return COS
 
     def __repr__(self) -> str:
         return self.__class__.__name__
 
-    def __contains__(self, candidate: Any) -> bool:
-        if not isinstance(candidate, Candidate):
+    def __contains__(self, candidate_id: Any) -> bool:
+        if not isinstance(candidate_id, str):
             return False
-        return candidate in self.__outcomes
+        return candidate_id in self.__outcomes
 
-    def __getitem__(self, candidate: Candidate) -> CandidateOutcome:
-        return self.__outcomes[candidate]
+    def __getitem__(self, candidate_id: str) -> CandidateOutcome:
+        return self.__outcomes[candidate_id]
 
-    def __iter__(self) -> Iterator[Candidate]:
+    def __iter__(self) -> Iterator[str]:
         yield from self.__outcomes
 
     def __len__(self) -> int:
@@ -74,11 +86,11 @@ class CandidateOutcomeStore(Mapping[Candidate, CandidateOutcome]):
         return len(self.__outcomes)
 
     def record(self,
-               candidate: Candidate,
+               candidate_id: str,
                outcome: CandidateOutcome
                ) -> None:
-        if candidate not in self.__outcomes:
-            self.__outcomes[candidate] = outcome
+        if candidate_id not in self.__outcomes:
+            self.__outcomes[candidate_id] = outcome
         else:
-            self.__outcomes[candidate] = \
-                self.__outcomes[candidate].merge(outcome)
+            self.__outcomes[candidate_id] = \
+                self.__outcomes[candidate_id].merge(outcome)

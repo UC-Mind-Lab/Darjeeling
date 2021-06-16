@@ -28,6 +28,7 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
                  threads: int = 1,
                  terminate_early: bool = True,
                  test_sample_size: Optional[Union[int, float]] = None,
+                 outcomes: Optional[CandidateOutcomeStore] = None,
                  run_redundant_tests: bool = False,
                  allow_partial_patches: bool = False
                  ) -> None:
@@ -42,6 +43,10 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
         threads: int
             the number of threads that should be made available to
             the search process.
+        outcomes: Optional[CandidateOutcomeStore]:
+            The previously computed outcomes.
+            This information will be used to not run duplicate
+            evaluations.
         run_redundant_tests: bool
             Specifies if redundant tests should be run. Tests are deemed
             redundant if a candidate patch does not change lines that the
@@ -60,8 +65,11 @@ class Searcher(DarjeelingEventProducer, abc.ABC):
                                      num_workers=threads,
                                      terminate_early=terminate_early,
                                      sample_size=test_sample_size,
-                                     run_redundant_tests=run_redundant_tests,
-                                     allow_partial_patches=allow_partial_patches)
+                                     outcomes=outcomes,
+                                     run_redundant_tests\
+                                             =run_redundant_tests,
+                                     allow_partial_patches\
+                                             =allow_partial_patches)
 
         self.__started = False
         self.__stopped = False
