@@ -49,36 +49,45 @@ class CandidateOutcome:
                 'tests': self.tests.to_dict(),
                 'is-repair': self.is_repair}
 
+    @classmethod
+    def from_dict(cls, _dict) -> 'CandidateOutcome':
+        return cls(
+                build=BuildOutcome.from_dict(_dict['build']),
+                tests=TestOutcomeSet.from_dict(_dict['tests']),
+                is_repair=_dict['is-repair'])
 
-class CandidateOutcomeStore(Mapping[Candidate, CandidateOutcome]):
+
+class CandidateOutcomeStore(Mapping[int, CandidateOutcome]):
     """Maintains a record of candidate patch evaluation outcomes."""
     def __init__(self) -> None:
-        self.__outcomes: Dict[str, CandidateOutcome] = {}
+        self.__outcomes: Dict[int, CandidateOutcome] = {}
 
     def to_dict(self) -> dict:
         _dict = {}
-        for candidate_id in self.__outcomes:
-            _dict[candidate_id] = self.__outcomes[candidate_id].to_dict()
+        for candidate_hash in self.__outcomes:
+            _dict[candidate_hash] = self.__outcomes[candidate_hash].to_dict()
         return _dict
 
-    def from_dict(self, _dict: dict) -> "CandidateOutcomeStore":
-        COS = self.__class__()
-        for candidate_id in _dict:
-            COS.record(candidate_id, _dict[candidate_id])
+    @classmethod
+    def from_dict(cls, _dict: dict) -> "CandidateOutcomeStore":
+        COS = cls()
+        for candidate_hash in _dict:
+            COS.record(candidate_hash, 
+                       CandidateOutcome.from_dict(_dict[candidate_hash]))
         return COS
 
     def __repr__(self) -> str:
         return self.__class__.__name__
 
-    def __contains__(self, candidate_id: Any) -> bool:
-        if not isinstance(candidate_id, str):
+    def __contains__(self, candidate_hash: Any) -> bool:
+        if not isinstance(candidate_hash, int):
             return False
-        return candidate_id in self.__outcomes
+        return candidate_hash in self.__outcomes
 
-    def __getitem__(self, candidate_id: str) -> CandidateOutcome:
-        return self.__outcomes[candidate_id]
+    def __getitem__(self, candidate_hash: int) -> CandidateOutcome:
+        return self.__outcomes[candidate_hash]
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(self) -> Iterator[int]:
         yield from self.__outcomes
 
     def __len__(self) -> int:
@@ -86,11 +95,11 @@ class CandidateOutcomeStore(Mapping[Candidate, CandidateOutcome]):
         return len(self.__outcomes)
 
     def record(self,
-               candidate_id: str,
+               candidate: Candidate,
                outcome: CandidateOutcome
                ) -> None:
-        if candidate_id not in self.__outcomes:
-            self.__outcomes[candidate_id] = outcome
+        if candidate not in self.__outcomes:
+            self.__outcomes[hash(candidate)] = outcome
         else:
-            self.__outcomes[candidate_id] = \
-                self.__outcomes[candidate_id].merge(outcome)
+            self.__outcomes[hash(candidate)] = \
+                self.__outcomes[hash(candidate)].merge(outcome)

@@ -139,7 +139,7 @@ class Session(DarjeelingEventProducer):
                                     resources=resources,
                                     transformations=transformations,
                                     threads=cfg.threads,
-                                    outcomes=cfg.outcomes,
+                                    outcomes=cfg.outcomes.outcomes,
                                     run_redundant_tests=cfg.run_redundant_tests,
                                     allow_partial_patches=cfg.allow_partial_patches)
 

@@ -13,7 +13,7 @@ from .config import SearcherConfig
 from ..candidate import Candidate
 from ..resources import ResourceUsageTracker
 from ..transformation import Transformation, ProgramTransformations
-from ..outcome import CandidateOutcome
+from ..outcome import CandidateOutcome, CandidateOutcomeStore
 
 if typing.TYPE_CHECKING:
     from ..problem import Problem
@@ -56,6 +56,7 @@ class GeneticSearcherConfig(SearcherConfig):
               resources: ResourceUsageTracker,
               transformations: ProgramTransformations,
               *,
+              outcomes: Optional[CandidateOutcomeStore],
               threads: int = 1,
               run_redundant_tests: bool = False,
               allow_partial_patches: bool = False
@@ -70,6 +71,7 @@ class GeneticSearcherConfig(SearcherConfig):
                                rate_mutation=self.rate_mutation,
                                tournament_size=self.tournament_size,
                                test_sample_size=self.sample_size,
+                               outcomes=outcomes,
                                run_redundant_tests=run_redundant_tests,
                                allow_partial_patches=allow_partial_patches)
 
@@ -86,6 +88,7 @@ class GeneticSearcher(Searcher):
                  rate_mutation: float = 1.0,
                  tournament_size: int = 2,
                  threads: int = 1,
+                 outcomes: Optional[CandidateOutcomeStore],
                  run_redundant_tests: bool = False,
                  allow_partial_patches: bool = False,
                  test_sample_size: Optional[Union[int, float]] = None
@@ -109,6 +112,7 @@ class GeneticSearcher(Searcher):
                          threads=threads,
                          run_redundant_tests=run_redundant_tests,
                          allow_partial_patches=allow_partial_patches,
+                         outcomes=outcomes,
                          test_sample_size=test_sample_size,
                          terminate_early=False)
 

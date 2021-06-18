@@ -4,6 +4,7 @@ __all__ = ('Config', 'OptimizationsConfig', 'CoverageConfig',
 
 from typing import Any, Collection, Dict, List, NoReturn, Optional, Set
 import datetime
+import json
 import os
 import sys
 import random
@@ -17,6 +18,7 @@ from .searcher.config import SearcherConfig
 from .coverage.config import CoverageConfig
 from .transformation.config import ProgramTransformationsConfig
 from .program import ProgramDescriptionConfig
+from .outcome import CandidateOutcomeStore
 
 
 @attr.s(frozen=True)
@@ -103,6 +105,24 @@ class OptimizationsConfig:
             only_insert_executed_code=yml.get('only-insert-executed-code', True))
 
 
+@attr.s(frozen=True)
+class OutcomesConfig:
+    """Specifies what candidates were already processed and what to do."""
+    outcomes: Optional[CandidateOutcomeStore] = attr.ib(default=None)
+
+    @staticmethod
+    def from_yml(yml) -> 'OutcomesConfig':
+        outcomes_json = yml.get('load-from-file', None)
+        outcomes: Optional[CandidateOutcomeStore] = None
+        if outcomes_json is not None:
+            with open(outcomes_json, 'r') as fin:
+                outcomes = CandidateOutcomeStore.from_dict(
+                        json.load(fin))
+
+        return OutcomesConfig(
+                outcomes=outcomes
+                )
+
 @attr.s(frozen=True, auto_attribs=True)
 class Config:
     """A configuration for Darjeeling.
@@ -153,6 +173,7 @@ class Config:
     resource_limits: ResourceLimits
     seed: int = attr.ib(default=0)
     optimizations: OptimizationsConfig = attr.ib(factory=OptimizationsConfig)
+    outcomes: OutcomesConfig = attr.ib(factory=OutcomesConfig)
     terminate_early: bool = attr.ib(default=True)
     threads: int = attr.ib(default=1)
     run_redundant_tests: bool = attr.ib(default=False)
@@ -264,6 +285,8 @@ class Config:
 
         opts = OptimizationsConfig.from_yml(yml.get('optimizations', {}))
 
+        outcomes = OutcomesConfig.from_yml(yml.get('outcomes', {}))
+
         # coverage config
         if 'coverage' in yml:
             coverage = CoverageConfig.from_dict(yml['coverage'], dir_)
@@ -305,4 +328,5 @@ class Config:
                       coverage=coverage,
                       search=search,
                       optimizations=opts,
+                      outcomes=outcomes,
                       dir_patches=dir_patches)

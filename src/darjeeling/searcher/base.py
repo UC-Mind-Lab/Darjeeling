@@ -10,7 +10,7 @@ from loguru import logger
 from ..candidate import Candidate
 from ..events import DarjeelingEventProducer, DarjeelingEventHandler
 from ..environment import Environment
-from ..outcome import CandidateOutcome
+from ..outcome import CandidateOutcome, CandidateOutcomeStore
 from ..resources import ResourceUsageTracker
 from ..evaluator import Evaluator, Evaluation
 from ..exceptions import (SearchAlreadyStarted, SearchExhausted,

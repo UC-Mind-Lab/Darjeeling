@@ -61,6 +61,7 @@ class Evaluator(DarjeelingEventProducer):
         self.__num_workers = num_workers
         self.__terminate_early = terminate_early
         self.__outcomes = outcomes or CandidateOutcomeStore()
+        logger.debug(f"Loaded Outcomes: {self.__outcomes.to_dict()}")
         self.__run_redundant_tests = run_redundant_tests
         self.__allow_partial_patches = allow_partial_patches
 
@@ -201,7 +202,7 @@ class Evaluator(DarjeelingEventProducer):
 
         if candidate.id in outcomes:
             logger.info(f"found candidate in cache: {candidate}")
-            cached_outcome = outcomes[candidate.id]
+            cached_outcome = outcomes[hash(candidate)]
             known_bad_patch |= not cached_outcome.is_repair
 
             if not cached_outcome.build.successful:
@@ -316,7 +317,7 @@ class Evaluator(DarjeelingEventProducer):
         else:
             self.dispatch(CandidateEvaluationFinished(candidate, outcome))
 
-        outcomes.record(candidate.id, outcome)
+        outcomes.record(candidate, outcome)
         import json
         with open("/tmp/outcomes.json", "w") as fout:
             json.dump(outcomes.to_dict(), fout)

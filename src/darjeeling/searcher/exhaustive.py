@@ -9,7 +9,7 @@ from loguru import logger
 from .base import Searcher
 from .config import SearcherConfig
 from ..candidate import Candidate
-from ..outcome import CandidateOutcome
+from ..outcome import CandidateOutcome, CandidateOutcomeStore
 from ..resources import ResourceUsageTracker
 from ..transformation import Transformation
 from ..exceptions import SearchExhausted
@@ -41,6 +41,7 @@ class ExhaustiveSearcherConfig(SearcherConfig):
               resources: ResourceUsageTracker,
               transformations: 'ProgramTransformations',
               *,
+              outcomes: Optional[CandidateOutcomeStore],
               threads: int = 1,
               run_redundant_tests: bool = False,
               allow_partial_patches: bool = False
@@ -49,6 +50,7 @@ class ExhaustiveSearcherConfig(SearcherConfig):
                                   resources=resources,
                                   transformations=transformations,
                                   threads=threads,
+                                  outcomes=outcomes,
                                   run_redundant_tests=run_redundant_tests,
                                   allow_partial_patches=allow_partial_patches)
 
@@ -59,6 +61,7 @@ class ExhaustiveSearcher(Searcher):
                  resources: ResourceUsageTracker,
                  transformations: 'ProgramTransformations',
                  *,
+                 outcomes: Optional[CandidateOutcomeStore],
                  threads: int = 1,
                  run_redundant_tests: bool = False,
                  allow_partial_patches: bool = False
@@ -68,6 +71,7 @@ class ExhaustiveSearcher(Searcher):
         super().__init__(problem=problem,
                          resources=resources,
                          threads=threads,
+                         outcomes=outcomes,
                          run_redundant_tests=run_redundant_tests,
                          allow_partial_patches=allow_partial_patches)
 

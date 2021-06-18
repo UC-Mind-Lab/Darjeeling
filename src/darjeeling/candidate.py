@@ -22,6 +22,9 @@ class Candidate:
     transformations: Tuple[Transformation, ...] = \
         attr.ib(converter=tuple_from_iterable)
 
+    def __hash__(self) -> int:
+        return hash(self.to_diff())
+
     def to_diff(self) -> Patch:
         """Transforms this candidate patch into a concrete, unified diff."""
         replacements = \

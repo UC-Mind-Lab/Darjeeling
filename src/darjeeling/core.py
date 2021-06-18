@@ -161,6 +161,12 @@ class BuildOutcome:
         return {'successful': self.successful,
                 'time-taken': self.time_taken}
 
+    @classmethod
+    def from_dict(cls, _dict) -> 'BuildOutcome':
+        return cls(
+                successful=_dict['successful'],
+                time_taken=float(_dict['time-taken']))
+
 
 class TestOutcomeSet:
     """Records the outcome of different test executions for a single patch."""
@@ -188,9 +194,19 @@ class TestOutcomeSet:
             outcomes[test_name] = other[test_name]
         return TestOutcomeSet(outcomes)
 
-    def to_dict(self) -> List[Dict[str, Any]]:
-        return [outcome.to_dict() for outcome in self.__outcomes.values()]
+    def to_dict(self) -> Dict[str, Any]:
+        _dict = {}
+        for test, outcome in self.__outcomes.items():
+            _dict[test] = outcome.to_dict()
+        return _dict
 
+    @classmethod
+    def from_dict(cls, _dict) -> 'TestOutcomeSet':
+        outcomes: Dict[str, TestOutcome] = {}
+        for test, outcome in _dict.items():
+            outcomes[test] = TestOutcome.from_dict(outcome)
+
+        return cls(outcomes=outcomes)
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class TestCoverage:

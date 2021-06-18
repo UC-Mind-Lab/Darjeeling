@@ -6,6 +6,7 @@ import abc
 import typing
 
 from ..util import dynamically_registered
+from ..outcome import CandidateOutcomeStore
 
 if typing.TYPE_CHECKING:
     from .base import Searcher
@@ -45,6 +46,7 @@ class SearcherConfig(abc.ABC):
               resources: 'ResourceUsageTracker',
               transformations: 'ProgramTransformations',
               *,
+              outcomes: Optional[CandidateOutcomeStore],
               threads: int = 1,
               run_redundant_tests: bool = False,
               allow_partial_patches: bool = False
