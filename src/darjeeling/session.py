@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __all__ = ('Session',)
 
-from typing import Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
 import glob
 import json
 import os
@@ -11,6 +11,7 @@ import attr
 import kaskara
 from bugzoo.core import Patch
 from bugzoo import Bug as Snapshot
+from sourcelocation import Location, FileLocation, FileLocationRange
 from loguru import logger
 
 from .core import Language, TestCoverageMap
@@ -215,28 +216,89 @@ class Session(DarjeelingEventProducer):
     def _save_patches_to_disk(self) -> None:
         logger.debug("saving patches to disk...")
         os.makedirs(self.dir_patches, exist_ok=True)
+
         for i, (patch, outcome) in enumerate(self._patches):
-            diff = str(patch.to_diff())
             fn_patch = os.path.join(self.dir_patches, f'{i}.diff')
             logger.debug(f"writing patch to {fn_patch}")
             try:
                 with open(fn_patch, 'w') as f:
-                    f.write(diff)
+                    f.write(str(patch.to_diff()))
             except OSError:
                 logger.exception(f"failed to write patch: {fn_patch}")
                 raise
             logger.debug(f"wrote patch to {fn_patch}")
-            fn_outcome = os.path.join(self.dir_patches, f'{i}.json')
+
+            fn_outcome = os.path.join(self.dir_patches, f'{i}_outcomes.json')
+            logger.debug(f"writing test outcomes to {fn_outcome}")
             try:
                 with open(fn_outcome, 'w') as f:
                     json.dump(outcome.to_dict(), f)
             except OSError:
-                logger.exception(f"failed to write test information:"
+                logger.exception(f"failed to write test outcomes:"
                                  f"{fn_outcome}")
                 raise
-            logger.debug(f"wrote test information to {fn_outcome}")
+            logger.debug(f"wrote test outcomes to {fn_outcome}")
+
+            fn_location = os.path.join(self.dir_patches, f'{i}_location.json')
+            logger.debug(f"writing patch location information to {fn_location}")
+            try:
+                with open(fn_location, 'w') as f:
+                    json.dump(
+                            self.get_patched_function_location_information(
+                                patch.to_diff()),
+                            f)
+            except OSError:
+                logger.exception(f"failed to write patch location information:"
+                                 f"{fn_location}")
+                raise
+            logger.debug(f"wrote patch location information to {fn_location}")
+
         logger.debug("saved patches to disk")
 
     def __enter__(self) -> 'Session':
         self.run()
         return self
+
+    @staticmethod
+    def file_location_to_string(location: FileLocation) -> str:
+        return f"{location.filename}:"\
+               f"{location.location.line}:{location.location.column}"
+
+    @staticmethod
+    def file_location_range_to_string(location: FileLocationRange)\
+            -> str:
+        return f"{location.filename}:"\
+               f"{location.start.line}:{location.start.column}::"\
+               f"{location.stop.line}:{location.stop.column}"
+
+    @staticmethod
+    def get_patch_insertion_points(patch: Patch) -> List[Patch]:
+        patch_insertion_points = []
+        for file_patch in patch._Patch__file_patches:
+            for hunk in file_patch._FilePatch__hunks:
+                patch_insertion_points.append(
+                        FileLocation(
+                            file_patch._FilePatch__old_fn,
+                            Location(hunk._Hunk__old_start_at,1)))
+        return patch_insertion_points
+
+    def get_patched_function_location_information(self, patch: Patch) ->\
+            Dict[str, Dict[str, Any]]:
+        if self.problem.analysis is None:
+            return {}
+        # Function names of patch
+        locations_to_functions = {}
+        for loc in self.get_patch_insertion_points(patch):
+            function = self.problem.analysis.functions.\
+                    encloses(loc)
+            locations_to_functions[self.file_location_to_string(loc)] = {
+                    'name': function.name,
+                    'location': self.file_location_range_to_string(
+                        function.location),
+                    'body_location': self.file_location_range_to_string(
+                        function.body_location),
+                    'return_type': function.return_type,
+                    'is_global': function.is_global,
+                    'is_pure': function.is_pure
+                    }
+        return locations_to_functions
