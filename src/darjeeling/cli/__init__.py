@@ -565,10 +565,11 @@ class BaseController(cement.Controller):
             for candidate in session.searcher._ExhaustiveSearcher__candidates:
                 for transformation in candidate.transformations:
                     text = transformation.to_replacement().text
-                    if text in statements:
-                        statements[text] += 1
+                    trimmed_text = " ".join(text.split())
+                    if trimmed_text in statements:
+                        statements[trimmed_text] += 1
                     else:
-                        statements[text] = 0
+                        statements[trimmed_text] = 0
 
             # Output information
             information = {
