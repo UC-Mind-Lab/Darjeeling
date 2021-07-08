@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from bugzoo.core.patch import Patch
 from collections import namedtuple
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Set
 import functools
 import glob
 import json
@@ -29,6 +29,7 @@ from ..core import TestCoverageMap
 from ..events import CsvEventLogger, WebSocketEventHandler
 from ..plugins import LOADED_PLUGINS
 from ..resources import ResourceUsageTracker
+from ..searcher import ExhaustiveSearcher
 from ..session import Session
 from ..exceptions import BadConfigurationException
 from ..util import duration_str
@@ -515,6 +516,63 @@ class BaseController(cement.Controller):
             # Output information
             information = {
                     'locations_to_functions': locations_to_functions
+                    }
+            formatter = ({
+                'text': lambda c: str(c),
+                'yaml': lambda c: yaml.safe_dump(c,
+                    default_flow_style=False),
+                'json': lambda c: json.dumps(c, indent=2)
+            })[self.app.pargs.format]
+            print(formatter(information))
+
+    @cement.ex(
+        help='Gather information about a patch.',
+        arguments=[
+            (['filename'],
+             {'help': ('a Darjeeling configuration file describing a '
+                       'program and how it should be tested.')}),
+            (['--format'],
+             {'help': 'the format that should be used for the coverage report',
+              'default': 'text',
+              'choices': ('text', 'yaml', 'json')})
+        ]
+    )
+    def software_metrics(self) -> None:
+        """Calculates the software metrics for a program."""
+        # load the configuration file
+        filename: str = self.app.pargs.filename
+        filename = os.path.abspath(filename)
+        cfg_dir = os.path.dirname(filename)
+        with open(filename, 'r') as f:
+            yml = yaml.safe_load(f)
+        cfg = Config.from_yml(yml, dir_=cfg_dir)
+
+        with bugzoo.server.ephemeral(timeout_connection=120) as client_bugzoo:
+            environment = Environment(bugzoo=client_bugzoo)
+            try:
+                session = Session.from_config(environment, cfg)
+            except BadConfigurationException as exp:
+                print(f"ERROR: bad configuration file:\n{exp}")
+                sys.exit(1)
+
+            if not isinstance(session.searcher, ExhaustiveSearcher):
+                print(f"ERROR: bad configuration file -- Must be"\
+                      f"ExhaustiveSearcher")
+                sys.exit(1)
+
+            # Get unique statements
+            statements : Dict[str, int] = dict()
+            for candidate in session.searcher._ExhaustiveSearcher__candidates:
+                for transformation in candidate.transformations:
+                    text = transformation.to_replacement().text
+                    if text in statements:
+                        statements[text] += 1
+                    else:
+                        statements[text] = 0
+
+            # Output information
+            information = {
+                    'statements': statements
                     }
             formatter = ({
                 'text': lambda c: str(c),
